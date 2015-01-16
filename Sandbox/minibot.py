@@ -15,11 +15,12 @@ print "moop: " + line
 s.send('NICK ateloph\n')
 s.send('USER posiputt irc.freenode.net bla: atelophbot\n')
 
+# log first line into buffer
 buf = line
 
-for i in range(100):
+while True:
     line = s.recv(500)
-    buf += line
+    buf += line # log all the lines!
     print line
     if line.find('Welcome to the freenode') != -1:
         s.send('JOIN #botophobia\n')
