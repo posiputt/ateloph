@@ -1,7 +1,11 @@
 import socket
 
-# secure shutdown:
-# close socket, show message, append buffer to log file
+'''
+Secure shutdown: 
+The method closes the socket and flushes the buffer to the log.
+Input: Socket socket, String msg, List buf
+Outcome: Quits program.
+'''
 def shutdown(socket, msg, buf):
     socket.close()
     out = open('log', 'a')
@@ -10,11 +14,11 @@ def shutdown(socket, msg, buf):
     print msg
     quit()
 
+# Constants
 SERVER = 'chat.freenode.net'
 PORT = 6667
-NICK = "ateloph_posi"
+REALNAME = NICK = "ateloph_posi"
 IDENT = "posiputt"
-REALNAME = NICK
 
 # connect to server
 s = socket.socket()
@@ -45,13 +49,13 @@ while True:
         shutdown(s, "connection lost", buf)
 
     line = line.rstrip()
-#    print line
     line = line.split()
-#    print line
 
-    # pong if pinged
+    # Test method:
+    # Bot should reply with 'pong' if 'ping'ed.
     if (line[0] == 'PING'):
         pong = 'PONG '+line[1]+'\n'
         print pong
         s.send(pong)
+
 shutdown(s, "end of program", buf)
