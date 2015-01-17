@@ -5,8 +5,14 @@ import sys
 # Constants
 SERVER = 'chat.freenode.net'
 PORT = 6667
-REALNAME = NICK = "ateloph_posi"
+REALNAME = NICK = "ateloph_test"
 IDENT = "posiputt"
+CHAN = "#freie-gesellschaft"
+ENTRY_MSG = 'Beep boob, wir testen den logbot. wer ihn loswerden will, schreibe "hau*ab". dann gibts aber auch kein log. das ist derzeit sowieso nicht oeffentlich, sondern auf posiputts rechner. wer neugierig auf die sources ist oder mitmachen will, siehe hier: https://github.com/posiputt/ateloph'
+FLUSH_DIST = 5 # num of lines to wait between log buffer flushes
+
+# Commands for controlling the bot inside a channel
+BOT_QUIT = "hau*ab"
 
 '''
 Secure shutdown: 
@@ -16,11 +22,18 @@ Outcome: Quits program.
 '''
 def shutdown(socket, msg, buf):
     socket.close()
-    with  open('log', 'a') as out:
-        out.write(buf+'\n')
-    out.close()
+    buf = flush_log(buf)
     print msg
     sys.exit("Exiting. Log has been written.")
+
+# save current buffer to file, return empty buffer to avoid redundancy
+def flush_log(buf):
+    print 'flushing log buffer to file'
+    with open('log', 'a') as out:
+        out.write(buf+'\n')
+    out.close()
+    buf = ""
+    return buf
     
 
 # connect to server
@@ -39,6 +52,7 @@ if __name__ == '__main__':
     print line
 
     try:
+        i = 0 # counter for periodical flushing of buf
         while True:
             line = s.recv(500)
             buf += line # log all the lines!
@@ -46,10 +60,12 @@ if __name__ == '__main__':
 
             #join AFTER connect is complete
             if line.find('Welcome to the freenode') != -1:
-                s.send('JOIN #5\n')
+                s.send('JOIN ' + CHAN + '\n')
+                s.send('PRIVMSG ' + CHAN + ' :' + ENTRY_MSG + '\n')
 
             # rude quit command (from anyone)
-            if line.find('hau ab') != -1:
+            if line.find(BOT_QUIT) != -1:
+                s.send('PRIVMSG ' + CHAN + ' :ich geh ja schon\n')
                 shutdown(s, "ich geh ja schon", buf)
 
             # catch disconnect
@@ -65,6 +81,12 @@ if __name__ == '__main__':
                 pong = 'PONG '+line[1]+'\n'
                 print pong
                 s.send(pong)
+
+            # flush log buffer to file, reset buffer and index
+            i += 1
+            if i > FLUSH_DIST:
+                buf = flush_log(buf)
+                i = 0
                 
     except Exception as e:
         shutdown(s, e, buf)
