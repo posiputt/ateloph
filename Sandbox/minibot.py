@@ -9,7 +9,7 @@ REALNAME = NICK = "ateloph_test"
 IDENT = "posiputt"
 CHAN = "#freie-gesellschaft"
 ENTRY_MSG = 'Beep boob, wir testen den logbot. wer ihn loswerden will, schreibe "hau*ab". dann gibts aber auch kein log. das ist derzeit sowieso nicht oeffentlich, sondern auf posiputts rechner. wer neugierig auf die sources ist oder mitmachen will, siehe hier: https://github.com/posiputt/ateloph'
-FLUSH_DIST = 5 # num of lines to wait between log buffer flushes
+FLUSH_DIST = 1 # num of lines to wait between log buffer flushes
 
 # Commands for controlling the bot inside a channel
 BOT_QUIT = "hau*ab"
@@ -26,7 +26,12 @@ def shutdown(socket, msg, buf):
     print msg
     sys.exit("Exiting. Log has been written.")
 
-# save current buffer to file, return empty buffer to avoid redundancy
+'''
+Flush log:
+save current buffer to file, return empty buffer to avoid redundancy
+Input: String buf
+Return: empty String buf
+'''
 def flush_log(buf):
     print 'flushing log buffer to file'
     with open('log', 'a') as out:
