@@ -1,6 +1,6 @@
 import socket
 import sys
-
+import datetime
 
 # Constants
 SERVER = 'chat.freenode.net'
@@ -8,7 +8,8 @@ PORT = 6667
 REALNAME = NICK = "ateloph_test"
 IDENT = "posiputt"
 CHAN = "#freie-gesellschaft"
-ENTRY_MSG = 'Beep boob, wir testen den logbot. wer ihn loswerden will, schreibe "hau*ab". dann gibts aber auch kein log. das ist derzeit sowieso nicht oeffentlich, sondern auf posiputts rechner. wer neugierig auf die sources ist oder mitmachen will, siehe hier: https://github.com/posiputt/ateloph'
+ENTRY_MSG = 'Beep boob, wir testen den logbot. Wer ihn loswerden will, schreibe "' + BOT_QUIT + '".' 
+INFO = "Das Log ist derzeit sowieso nicht oeffentlich, sondern auf posiputts Rechner. Wer neugierig auf die sources ist oder mitmachen will, siehe hier: https://github.com/posiputt/ateloph"
 FLUSH_DIST = 1 # num of lines to wait between log buffer flushes
 
 # Commands for controlling the bot inside a channel
@@ -34,8 +35,9 @@ Return: empty String buf
 '''
 def flush_log(buf):
     print 'flushing log buffer to file'
-    with open('log', 'a') as out:
-        out.write(buf+'\n')
+    now = datetime.datetime.today()
+    with open(now.date() +'log', 'a') as out:
+        out.write(now.strftime("%H:%M:%S") + ': ' +buf+'\n')
     out.close()
     buf = ""
     return buf
@@ -48,6 +50,11 @@ def conbot():
     s.send('NICK ' + NICK + '\n')
     s.send('USER ' + IDENT + ' ' + SERVER +' bla: ' + REALNAME + '\n')
     return s
+    
+# Parser to get rid of irrelvant information
+def parser(line):
+    pass
+    
     
 if __name__ == '__main__':
     s = conbot()
