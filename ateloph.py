@@ -8,12 +8,14 @@ BOT_QUIT = "hau*ab"
 # Constants
 SERVER = 'chat.freenode.net'
 PORT = 6667
-REALNAME = NICK = "ateloph_test"
+REALNAME = NICK = "ateloph_posi"
 IDENT = "posiputt"
-CHAN = "#freie-gesellschaft"
-ENTRY_MSG = 'Beep boob, wir testen den logbot. Wer ihn loswerden will, schreibe "' + BOT_QUIT + '".' 
-INFO = "Das Log ist derzeit sowieso nicht oeffentlich, sondern auf posiputts Rechner. Wer neugierig auf die sources ist oder mitmachen will, siehe hier: https://github.com/posiputt/ateloph"
-FLUSH_DIST = 1 # num of lines to wait between log buffer flushes
+CHAN = "#5"
+# ENTRY_MSG = 'Beep boop, wir testen den logbot. Wer ihn loswerden will, schreibe "' + BOT_QUIT + '".' 
+# INFO = "Das Log ist derzeit sowieso nicht oeffentlich, sondern auf posiputts Rechner. Wer neugierig auf die sources ist oder mitmachen will, siehe hier: https://github.com/posiputt/ateloph"
+ENTRY_MSG = 'entry.'
+INFO = 'info.'
+FLUSH_INTERVAL = 7 # num of lines to wait between log buffer flushes
 
 '''
 Secure shutdown: 
@@ -37,11 +39,10 @@ def flush_log(buf):
     print 'flushing log buffer to file'
     now = datetime.datetime.today()
     with open(str(now.date()) +'.log', 'a') as out:
-        out.write(now.strftime("%H:%M:%S") + ': ' +buf+'\n')
+        out.write(buf)
     out.close()
     buf = ""
-    return buf
-    
+    return buf    
 
 # connect to server
 def conbot():
@@ -52,23 +53,40 @@ def conbot():
     return s
     
 # Parser to get rid of irrelvant information
-def parser(line):
-    pass
+def parse(line):
+    out = ""
+    print line
+    for l in line.split('\n'):
+        if not l == '' and not l[:4] == 'PING':
+            words = l.split(' ')
+            timestamp = datetime.datetime.today().strftime("%H:%M:%S")
+            nickname = words[0].split('!')[0][1:]+':'
+            if words[1] == 'PRIVMSG':
+                message = words[3][1:]
+                l = ' '.join([timestamp, nickname, message])
+            elif words[1] == 'JOIN':
+                channel = words[2]
+                l = ' '.join([timestamp, nickname, 'joined', channel])
+            elif words[1] == 'PART':
+                channel = words[2]
+                l = ' '.join([timestamp, nickname, 'left', channel])
+            print l
+            return l +'\n'
+    return out
+    
     
     
 if __name__ == '__main__':
     s = conbot()
     
-    # Generate a List line and List "buffer" buf.
-    buf = line = s.recv(500)
-    print line
+    # Generate a String "buffer" buf.
+    buf = parse(s.recv(2048))
 
     try:
         i = 0 # counter for periodical flushing of buf
         while True:
-            line = s.recv(500)
-            buf += line # log all the lines!
-            print line
+            line = s.recv(2048)
+            buf += parse(line)
 
             #join AFTER connect is complete
             if line.find('Welcome to the freenode') != -1:
@@ -86,7 +104,7 @@ if __name__ == '__main__':
                 shutdown(s, "connection lost", buf)
 
             line = line.rstrip().split()
-            print line
+            #print line
 
             # Test method:
             # Bot should reply with 'pong' if 'ping'ed.
@@ -97,7 +115,7 @@ if __name__ == '__main__':
 
             # flush log buffer to file, reset buffer and index
             i += 1
-            if i > FLUSH_DIST:
+            if i > FLUSH_INTERVAL:
                 buf = flush_log(buf)
                 i = 0
                 
