@@ -107,11 +107,12 @@ def parse(line):
             and user@domain
             '''
             nickname = words[0].split('!')[0][1:]
+            indicator = words[1]
 
             try:
-                l = functions[words[1]](timestamp, nickname, words)
+                l = functions[indicator](timestamp, nickname, words)
             except Exception as e:
-                print 'exception: ' + e
+                print 'Expception in parse - failed to pass to any appropriate fucntion: ' + e
 
             print l
             return l+'\n'
@@ -123,7 +124,8 @@ if __name__ == '__main__':
     s = conbot()
     
     # Generate a String "buffer" buf.
-    buf = parse(s.recv(2048))
+    ## Might be unecessary
+    #buf = parse(s.recv(2048))
 
     try:
         i = 0 # counter for periodical flushing of buf
