@@ -15,7 +15,7 @@ CHAN = "#5"
 # INFO = "Das Log ist derzeit sowieso nicht oeffentlich, sondern auf posiputts Rechner. Wer neugierig auf die sources ist oder mitmachen will, siehe hier: https://github.com/posiputt/ateloph"
 ENTRY_MSG = 'entry.'
 INFO = 'info.'
-FLUSH_INTERVAL = 7 # num of lines to wait between log buffer flushes
+FLUSH_INTERVAL = 3 # num of lines to wait between log buffer flushes
 
 '''
 Secure shutdown: 
@@ -54,24 +54,67 @@ def conbot():
     
 # Parser to get rid of irrelvant information
 def parse(line):
+    '''
+    log_privmsg
+    format IRC PRIVMSG for log
+    input: string timestamp, string nickname, list words
+    return: string logline
+    '''
+    def log_privmsg(timestamp, nickname, words):
+        words[3] = words[3][1:]         # remove the leading colon
+        message = ' '.join(words[3:])
+        logline = ' '.join([timestamp, nickname+':' , message])
+        return logline
+
+    '''
+    log_join
+    format IRC JOIN for log
+    input: string timestamp, string nickname, list words
+    return: string logline
+    '''
+    def log_join(timestamp, nickname, words):
+        channel = words[2]
+        logline = ' '.join([timestamp, nickname, 'joined', channel])
+        return logline
+
+    '''
+    log_part
+    format IRC PART for log
+    input: string timestamp, string nickname, list words
+    return: string logline
+    '''
+    def log_part(timestamp, nickname, words):
+        channel = words[2]
+        logline = ' '.join([timestamp, nickname, 'left', channel])
+        return logline
+
+
+    functions = {
+            'PRIVMSG':  log_privmsg,
+            'JOIN':     log_join,
+            'PART':     log_part
+    }
+
     out = ""
     print line
     for l in line.split('\n'):
         if not l == '' and not l[:4] == 'PING':
             words = l.split(' ')
             timestamp = datetime.datetime.today().strftime("%H:%M:%S")
-            nickname = words[0].split('!')[0][1:]+':'
-            if words[1] == 'PRIVMSG':
-                message = words[3][1:]
-                l = ' '.join([timestamp, nickname, message])
-            elif words[1] == 'JOIN':
-                channel = words[2]
-                l = ' '.join([timestamp, nickname, 'joined', channel])
-            elif words[1] == 'PART':
-                channel = words[2]
-                l = ' '.join([timestamp, nickname, 'left', channel])
+
+            '''
+            nickname: remove leading colon,
+            and user@domain
+            '''
+            nickname = words[0].split('!')[0][1:]
+
+            try:
+                l = functions[words[1]](timestamp, nickname, words)
+            except Exception as e:
+                print 'exception: ' + e
+
             print l
-            return l +'\n'
+            return l+'\n'
     return out
     
     
