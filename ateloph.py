@@ -112,7 +112,7 @@ def parse(line):
             try:
                 l = functions[indicator](timestamp, nickname, words)
             except Exception as e:
-                print 'Expception in parse - failed to pass to any appropriate fucntion: ' + e
+                print 'Expception in parse - failed to pass to any appropriate fucntion: ' + str(e)
 
             print l
             return l+'\n'
@@ -129,6 +129,7 @@ if __name__ == '__main__':
 
     try:
         i = 0 # counter for periodical flushing of buf
+        buf = ''
         while True:
             line = s.recv(2048)
             buf += parse(line)
