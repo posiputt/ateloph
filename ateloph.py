@@ -1,6 +1,7 @@
 import socket
 import sys
 import datetime
+import time
 
 # Commands for controlling the bot inside a channel
 BOT_QUIT = "hau*ab"
@@ -16,6 +17,11 @@ CHAN = "#5"
 ENTRY_MSG = 'entry.'
 INFO = 'info.'
 FLUSH_INTERVAL = 3 # num of lines to wait between log buffer flushes
+PING_TIMEOUT = 260.
+PT_PAUSE = 10 # sleep time before reconnecting after ping timeout
+
+
+log_enabled = False
 
 '''
 Secure shutdown: 
@@ -112,7 +118,7 @@ def parse(line):
             try:
                 l = functions[indicator](timestamp, nickname, words)
             except Exception as e:
-                print 'Expception in parse - failed to pass to any appropriate fucntion: ' + str(e)
+                print 'Expception in parse - failed to pass to any appropriate function: ' + str(e)
 
             print l
             return l+'\n'
@@ -130,6 +136,9 @@ if __name__ == '__main__':
     try:
         i = 0 # counter for periodical flushing of buf
         buf = ''
+        last_ping = time.time() # when did the server last ping us?
+        print last_ping
+
         while True:
             line = s.recv(2048)
             buf += parse(line)
@@ -139,6 +148,7 @@ if __name__ == '__main__':
                 s.send('JOIN ' + CHAN + '\n')
                 s.send('PRIVMSG ' + CHAN + ' :' + ENTRY_MSG + '\n')
                 s.send('PRIVMSG ' + CHAN + ' :' + INFO + '\n')
+                log_enabled = True
 
             # rude quit command (from anyone)
             if line.find(BOT_QUIT) != -1:
@@ -148,6 +158,17 @@ if __name__ == '__main__':
             # catch disconnect
             if line.find(':Closing Link:') != -1:
                 shutdown(s, "connection lost", buf)
+            # catch ping timeout
+            elif time.time() - last_ping > PING_TIMEOUT:
+                last_ping = time.time()
+                log_enabled = False
+                print "Ping timeout!"
+                s.close()
+                for s in range(PT_PAUSE):
+                    print s
+                    time.sleep(1)
+                print "Trying to reconnect"
+                s = conbot()
 
             line = line.rstrip().split()
             #print line
@@ -155,13 +176,14 @@ if __name__ == '__main__':
             # Test method:
             # Bot should reply with 'pong' if 'ping'ed.
             if (line[0] == 'PING'):
+                last_ping = time.time()
                 pong = 'PONG '+line[1]+'\n'
                 print pong
                 s.send(pong)
 
             # flush log buffer to file, reset buffer and index
             i += 1
-            if i > FLUSH_INTERVAL:
+            if i > FLUSH_INTERVAL and log_enabled:
                 buf = flush_log(buf)
                 i = 0
                 
