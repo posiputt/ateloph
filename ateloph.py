@@ -1,3 +1,14 @@
+"""
+Atheloph: an IRC bot that writes a log.
+
+TODOs:
+    1) implement proactive ping so bot knows if it's disconnected
+    2) implement auto-reconnect
+    3) HTML logs with one anchor per line (or write a separate script to convert text to html)
+
+    0) regularly tidy up code!
+"""
+
 import socket
 import sys
 import datetime
