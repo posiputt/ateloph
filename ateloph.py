@@ -218,6 +218,8 @@ if __name__ == '__main__':
                 i = 0
                 
     except Exception as e:
+        print "in main exception: " + str(e)
         shutdown(s, e, buf)
+        print "after shutdown"
         raise e
 
