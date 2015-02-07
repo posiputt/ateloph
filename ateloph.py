@@ -56,9 +56,13 @@ def flush_log(buf):
     print 'flushing log buffer to file'
     now = datetime.datetime.today()
     with open(str(now.date()) +'.log', 'a') as out:
+        print "in with-statement"
         out.write(buf)
+        print "written to file"
     out.close()
+    print "file closed"
     buf = ""
+    print "buf reset"
     return buf    
 
 # connect to server
@@ -78,9 +82,11 @@ def parse(line):
     return: string logline
     '''
     def log_privmsg(timestamp, nickname, words):
+        print "in log_privmsg"
         words[3] = words[3][1:]         # remove the leading colon
         message = ' '.join(words[3:])
         logline = ' '.join([timestamp, nickname+':' , message])
+        print "log_privmsg ended"
         return logline
 
     '''
@@ -90,8 +96,10 @@ def parse(line):
     return: string logline
     '''
     def log_join(timestamp, nickname, words):
+        print "in log_join"
         channel = words[2]
         logline = ' '.join([timestamp, nickname, 'joined', channel])
+        print "log_join ended"
         return logline
 
     '''
@@ -101,8 +109,10 @@ def parse(line):
     return: string logline
     '''
     def log_part(timestamp, nickname, words):
+        print "in log_part"
         channel = words[2]
         logline = ' '.join([timestamp, nickname, 'left', channel])
+        print "log_part ended"
         return logline
 
 
@@ -115,7 +125,9 @@ def parse(line):
     out = ""
     print line
     for l in line.split('\n'):
+        print "after line.split in parse_line"
         if not l == '' and not l[:4] == 'PING':
+            print "after test for empty string and PING in parse_line"
             words = l.split(' ')
             timestamp = datetime.datetime.today().strftime("%H:%M:%S")
 
@@ -123,8 +135,11 @@ def parse(line):
             nickname: remove leading colon,
             and user@domain
             '''
+            print "cropping nickname in parse_line"
             nickname = words[0].split('!')[0][1:]
+            print "removed colon from nickname"
             indicator = words[1]
+            print "assigned indicator in parse_line"
 
             try:
                 l = functions[indicator](timestamp, nickname, words)
@@ -152,7 +167,9 @@ if __name__ == '__main__':
 
         while True:
             line = s.recv(2048)
+            print "line populated"
             buf += parse(line)
+            print "line parsed, back in main loop"
 
             #join AFTER connect is complete
             if line.find('Welcome to the freenode') != -1:
@@ -194,8 +211,10 @@ if __name__ == '__main__':
 
             # flush log buffer to file, reset buffer and index
             i += 1
+            print i
             if i > FLUSH_INTERVAL and log_enabled:
                 buf = flush_log(buf)
+                print "after buf = flush_log"
                 i = 0
                 
     except Exception as e:
