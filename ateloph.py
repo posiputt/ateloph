@@ -122,32 +122,22 @@ def parse(line):
             'PART':     log_part
     }
 
-    out = ""
+    out = ''
     print line
-    for l in line.split('\n'):
-        print "after line.split in parse_line"
-        if not l == '' and not l[:4] == 'PING':
-            print "after test for empty string and PING in parse_line"
-            words = l.split(' ')
-            timestamp = datetime.datetime.today().strftime("%H:%M:%S")
-
-            '''
-            nickname: remove leading colon,
-            and user@domain
-            '''
-            print "cropping nickname in parse_line"
-            nickname = words[0].split('!')[0][1:]
-            print "removed colon from nickname"
-            indicator = words[1]
-            print "assigned indicator in parse_line"
-
-            try:
-                l = functions[indicator](timestamp, nickname, words)
-            except Exception as e:
-                print 'Expception in parse - failed to pass to any appropriate function: ' + str(e)
-
+    words = line.split()
+    print words
+    if not words[0] == 'PING':
+        timestamp = datetime.datetime.today().strftime("%H:%M:%S")
+        nickname = words[0].split('!')[0][1:]
+        print nickname
+        indicator = words[1]
+        
+        try:
+            l = functions[indicator](timestamp, nickname, words)
             print l
-            return l+'\n'
+            return l + '\n'
+        except Exception as e:
+            print 'Exception in parse - failed to pass to any appropriate function: ' + str(e)
     return out
     
     
@@ -161,15 +151,34 @@ if __name__ == '__main__':
 
     try:
         i = 0 # counter for periodical flushing of buf
-        buf = ''
+        buf = []
+        loglines = ''
         last_ping = time.time() # when did the server last ping us?
         print last_ping
 
         while True:
+            clean_eol = False # 
+            line_tail = ''
             line = s.recv(2048)
-            print "line populated"
-            buf += parse(line)
-            print "line parsed, back in main loop"
+            buf = line.split('\n')
+            
+            """
+            does line end with clean EOL?
+            (most times it won't)
+            """
+            if line[-1:] == '\n':
+                clean_eol = True
+
+            if not clean_eol:
+                line_tail = buf.pop(-1)
+            else:
+                buf.pop(-1) # remove empty string from split
+
+            #print "line populated"
+            #buf += parse(line)
+            #print "line parsed, back in main loop"
+            for b in buf:
+                loglines += parse(b)
 
             #join AFTER connect is complete
             if line.find('Welcome to the freenode') != -1:
@@ -213,13 +222,13 @@ if __name__ == '__main__':
             i += 1
             print i
             if i > FLUSH_INTERVAL and log_enabled:
-                buf = flush_log(buf)
+                loglines = flush_log(loglines)
                 print "after buf = flush_log"
                 i = 0
                 
     except Exception as e:
         print "in main exception: " + str(e)
-        shutdown(s, e, buf)
+        shutdown(s, e, loglines)
         print "after shutdown"
         raise e
 
