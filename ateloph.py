@@ -160,6 +160,7 @@ if __name__ == '__main__':
         while True:
             clean_eol = False # 
             line = line_tail + s.recv(2048)
+            line_tail = ''
             buf = line.split('\n')
             
             """
