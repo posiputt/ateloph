@@ -152,14 +152,14 @@ if __name__ == '__main__':
     try:
         i = 0 # counter for periodical flushing of buf
         buf = []
-        loglines = ''
+        loglines = ''  # for periodical flushing to the log file
+        line_tail = '' # store incomplete lines (not ending with '\n') from the server here
         last_ping = time.time() # when did the server last ping us?
         print last_ping
 
         while True:
             clean_eol = False # 
-            line_tail = ''
-            line = s.recv(2048)
+            line = line_tail + s.recv(2048)
             buf = line.split('\n')
             
             """
