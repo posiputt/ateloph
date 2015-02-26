@@ -120,11 +120,12 @@ def parse(line):
     functions = {
             'PRIVMSG':  log_privmsg,
             'JOIN':     log_join,
-            'QUIT':     log_quit
+            'QUIT':     log_quit,
+            'PART':     log_quit
     }
 
     out = ''
-    #print line
+    print line
     words = line.split()
     #print words
     if not words[0] == 'PING':
