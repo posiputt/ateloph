@@ -83,11 +83,11 @@ def parse(line):
     return: string logline
     '''
     def log_privmsg(timestamp, nickname, words):
-        print "in log_privmsg"
+        #print "in log_privmsg"
         words[3] = words[3][1:]         # remove the leading colon
         message = ' '.join(words[3:])
         logline = ' '.join([timestamp, nickname+':' , message])
-        print "log_privmsg ended"
+        #print "log_privmsg ended"
         return logline
 
     '''
@@ -97,10 +97,10 @@ def parse(line):
     return: string logline
     '''
     def log_join(timestamp, nickname, words):
-        print "in log_join"
+        #print "in log_join"
         channel = words[2]
         logline = ' '.join([timestamp, nickname, 'joined', channel])
-        print "log_join ended"
+        #print "log_join ended"
         return logline
 
     '''
@@ -110,10 +110,10 @@ def parse(line):
     return: string logline
     '''
     def log_part(timestamp, nickname, words):
-        print "in log_part"
+        #print "in log_part"
         channel = words[2]
         logline = ' '.join([timestamp, nickname, 'left', channel])
-        print "log_part ended"
+        #print "log_part ended"
         return logline
 
 
@@ -124,9 +124,9 @@ def parse(line):
     }
 
     out = ''
-    print line
+    #print line
     words = line.split()
-    print words
+    #print words
     if not words[0] == 'PING':
         timestamp = datetime.datetime.today().strftime("%H:%M:%S")
         nickname = words[0].split('!')[0][1:]
@@ -158,21 +158,17 @@ if __name__ == '__main__':
         line = ''
         line_tail = '' # store incomplete lines (not ending with '\n') from the server here
         last_ping = time.time() # when did the server last ping us?
-        print last_ping
+        #print last_ping
 
         while True:
             clean_eol = False
             s_ready = select.select([s], [], [], PT_PAUSE)
             if s_ready:
                 try:
-                    print "socket ready"
                     line = line_tail + s.recv(2048)
                     line_tail = ''
-                    print "after recv"
-                                        # catch disconnect
-                    print "line.find"
-                    print line
-                    print "SHOULD NOT BE A LIST!"
+                    
+                    # catch disconnect
                     if line.find(':Closing Link:') != -1:
                         shutdown(s, "connection lost", buf)
                     # catch ping timeout
@@ -181,12 +177,9 @@ if __name__ == '__main__':
                         log_enabled = False
                         print "Ping timeout!"
                         s.close()
-                        for s in range(PT_PAUSE):
-                            print s
-                            time.sleep(1)
+                        time.sleep(PT_PAUSE)
                         print "Trying to reconnect"
                         s = conbot()
-                    print "after line.find"
                         
                     buf = line.split('\n')
                     
@@ -201,10 +194,7 @@ if __name__ == '__main__':
                         line_tail = buf.pop(-1)
                     else:
                         buf.pop(-1) # remove empty string from split
-
-                    #print "line populated"
-                    #buf += parse(line)
-                    #print "line parsed, back in main loop"
+                        
                     for b in buf:
                         loglines += parse(b)
 
@@ -232,12 +222,13 @@ if __name__ == '__main__':
                         s.send(pong)
                         
                     loglines = flush_log(loglines)
-                    print "after buf = flush_log"
                 except Exception as e:
-                    print "no new data: " + str(e)
+                    # print "no new data: " + str(e)
                     line = ''
             else:
                 print "socket timed out"
+                s = conbot()
+                s.setblocking(0)
     except Exception as e:
         print "in main exception: " + str(e)
         shutdown(s, e, loglines)
