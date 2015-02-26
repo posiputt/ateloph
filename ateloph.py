@@ -104,13 +104,13 @@ def parse(line):
         return logline
 
     '''
-    log_part
-    format IRC PART for log
+    log_quit
+    format IRC QUIT for log
     input: string timestamp, string nickname, list words
     return: string logline
     '''
-    def log_part(timestamp, nickname, words):
-        #print "in log_part"
+    def log_quit(timestamp, nickname, words):
+        #print "in log_quit"
         channel = words[2]
         logline = ' '.join([timestamp, nickname, 'left', channel])
         #print "log_part ended"
@@ -120,7 +120,7 @@ def parse(line):
     functions = {
             'PRIVMSG':  log_privmsg,
             'JOIN':     log_join,
-            'PART':     log_part
+            'QUIT':     log_quit
     }
 
     out = ''
