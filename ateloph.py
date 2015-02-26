@@ -13,6 +13,7 @@ import socket
 import sys
 import datetime
 import time
+import select
 
 # Commands for controlling the bot inside a channel
 BOT_QUIT = "hau*ab"
@@ -144,6 +145,7 @@ def parse(line):
     
 if __name__ == '__main__':
     s = conbot()
+    s.setblocking(0)
     
     # Generate a String "buffer" buf.
     ## Might be unecessary
@@ -153,80 +155,89 @@ if __name__ == '__main__':
         i = 0 # counter for periodical flushing of buf
         buf = []
         loglines = ''  # for periodical flushing to the log file
+        line = ''
         line_tail = '' # store incomplete lines (not ending with '\n') from the server here
         last_ping = time.time() # when did the server last ping us?
         print last_ping
 
         while True:
-            clean_eol = False # 
-            line = line_tail + s.recv(2048)
-            line_tail = ''
-            buf = line.split('\n')
-            
-            """
-            does line end with clean EOL?
-            (most times it won't)
-            """
-            if line[-1:] == '\n':
-                clean_eol = True
+            clean_eol = False
+            s_ready = select.select([s], [], [], PT_PAUSE)
+            if s_ready:
+                try:
+                    print "socket ready"
+                    line = line_tail + s.recv(2048)
+                    line_tail = ''
+                    print "after recv"
+                                        # catch disconnect
+                    print "line.find"
+                    print line
+                    print "SHOULD NOT BE A LIST!"
+                    if line.find(':Closing Link:') != -1:
+                        shutdown(s, "connection lost", buf)
+                    # catch ping timeout
+                    elif time.time() - last_ping > PING_TIMEOUT:
+                        last_ping = time.time()
+                        log_enabled = False
+                        print "Ping timeout!"
+                        s.close()
+                        for s in range(PT_PAUSE):
+                            print s
+                            time.sleep(1)
+                        print "Trying to reconnect"
+                        s = conbot()
+                    print "after line.find"
+                        
+                    buf = line.split('\n')
+                    
+                    """
+                    does line end with clean EOL?
+                    (most times it won't)
+                    """
+                    if line[-1:] == '\n':
+                        clean_eol = True
 
-            if not clean_eol:
-                line_tail = buf.pop(-1)
+                    if not clean_eol:
+                        line_tail = buf.pop(-1)
+                    else:
+                        buf.pop(-1) # remove empty string from split
+
+                    #print "line populated"
+                    #buf += parse(line)
+                    #print "line parsed, back in main loop"
+                    for b in buf:
+                        loglines += parse(b)
+
+                    #join AFTER connect is complete
+                    if line.find('Welcome to the freenode') != -1:
+                        s.send('JOIN ' + CHAN + '\n')
+                        s.send('PRIVMSG ' + CHAN + ' :' + ENTRY_MSG + '\n')
+                        s.send('PRIVMSG ' + CHAN + ' :' + INFO + '\n')
+                        log_enabled = True
+
+                    # rude quit command (from anyone)
+                    if line.find(BOT_QUIT) != -1:
+                        s.send('PRIVMSG ' + CHAN + ' :ich geh ja schon\n')
+                        shutdown(s, "ich geh ja schon", buf)
+
+                    line = line.rstrip().split()
+                    #print line
+
+                    # Test method:
+                    # Bot should reply with 'pong' if 'ping'ed.
+                    if (line[0] == 'PING'):
+                        last_ping = time.time()
+                        pong = 'PONG '+line[1]+'\n'
+                        print pong
+                        s.send(pong)
+                        
+                    loglines = flush_log(loglines)
+                    print "after buf = flush_log"
+                except Exception as e:
+                    print "no new data: " + str(e)
+                    line = ''
             else:
-                buf.pop(-1) # remove empty string from split
-
-            #print "line populated"
-            #buf += parse(line)
-            #print "line parsed, back in main loop"
-            for b in buf:
-                loglines += parse(b)
-
-            #join AFTER connect is complete
-            if line.find('Welcome to the freenode') != -1:
-                s.send('JOIN ' + CHAN + '\n')
-                s.send('PRIVMSG ' + CHAN + ' :' + ENTRY_MSG + '\n')
-                s.send('PRIVMSG ' + CHAN + ' :' + INFO + '\n')
-                log_enabled = True
-
-            # rude quit command (from anyone)
-            if line.find(BOT_QUIT) != -1:
-                s.send('PRIVMSG ' + CHAN + ' :ich geh ja schon\n')
-                shutdown(s, "ich geh ja schon", buf)
-
-            # catch disconnect
-            if line.find(':Closing Link:') != -1:
-                shutdown(s, "connection lost", buf)
-            # catch ping timeout
-            elif time.time() - last_ping > PING_TIMEOUT:
-                last_ping = time.time()
-                log_enabled = False
-                print "Ping timeout!"
-                s.close()
-                for s in range(PT_PAUSE):
-                    print s
-                    time.sleep(1)
-                print "Trying to reconnect"
-                s = conbot()
-
-            line = line.rstrip().split()
-            #print line
-
-            # Test method:
-            # Bot should reply with 'pong' if 'ping'ed.
-            if (line[0] == 'PING'):
-                last_ping = time.time()
-                pong = 'PONG '+line[1]+'\n'
-                print pong
-                s.send(pong)
-
-            # flush log buffer to file, reset buffer and index
-            i += 1
-            print i
-            if i > FLUSH_INTERVAL and log_enabled:
-                loglines = flush_log(loglines)
-                print "after buf = flush_log"
-                i = 0
-                
+                print "socket timed out"
     except Exception as e:
         print "in main exception: " + str(e)
         shutdown(s, e, loglines)
