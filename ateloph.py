@@ -29,7 +29,7 @@ CHAN = "#5"
 ENTRY_MSG = 'entry.'
 INFO = 'info.'
 FLUSH_INTERVAL = 3 # num of lines to wait between log buffer flushes
-CON_TIMEOUT = 10.0
+CON_TIMEOUT = 260.0
 PT_PAUSE = 10 # sleep time before reconnecting after ping timeout
 
 
