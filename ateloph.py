@@ -29,7 +29,7 @@ CHAN = "#5"
 ENTRY_MSG = 'entry.'
 INFO = 'info.'
 FLUSH_INTERVAL = 3 # num of lines to wait between log buffer flushes
-PING_TIMEOUT = 260.
+CON_TIMEOUT = 10.0
 PT_PAUSE = 10 # sleep time before reconnecting after ping timeout
 
 
@@ -54,16 +54,16 @@ Input: String buf
 Return: empty String buf
 '''
 def flush_log(buf):
-    print 'flushing log buffer to file'
+    #print 'flushing log buffer to file'
     now = datetime.datetime.today()
     with open(str(now.date()) +'.log', 'a') as out:
-        print "in with-statement"
+        #print "in with-statement"
         out.write(buf)
-        print "written to file"
+        #print "written to file"
     out.close()
-    print "file closed"
+    #print "file closed"
     buf = ""
-    print "buf reset"
+    #print "buf reset"
     return buf    
 
 # connect to server
@@ -125,26 +125,23 @@ def parse(line):
     }
 
     out = ''
-    print line
+    #print line
     words = line.split()
-    #print words
-    if not words[0] == 'PING':
-        timestamp = datetime.datetime.today().strftime("%H:%M:%S")
-        nickname = words[0].split('!')[0][1:]
-        print nickname
-        indicator = words[1]
-        
-        try:
-            l = functions[indicator](timestamp, nickname, words)
-            print l
-            return l + '\n'
-        except Exception as e:
-            print 'Exception in parse - failed to pass to any appropriate function: ' + str(e)
+
+    timestamp = datetime.datetime.today().strftime("%H:%M:%S")
+    nickname = words[0].split('!')[0][1:]
+    #print nickname
+    indicator = words[1]
+    
+    try:
+        l = functions[indicator](timestamp, nickname, words)
+        #print l
+        out = l + '\n'
+    except Exception as e:
+        print 'Exception in parse - failed to pass to any appropriate function: ' + str(e)
     return out
     
-    
-    
-if __name__ == '__main__':
+def old_main():
     s = conbot()
     s.setblocking(0)
     
@@ -173,7 +170,7 @@ if __name__ == '__main__':
                     if line.find(':Closing Link:') != -1:
                         shutdown(s, "connection lost", buf)
                     # catch ping timeout
-                    elif time.time() - last_ping > PING_TIMEOUT:
+                    elif time.time() - last_ping > CON_TIMEOUT:
                         last_ping = time.time()
                         log_enabled = False
                         print "Ping timeout!"
@@ -235,4 +232,100 @@ if __name__ == '__main__':
         shutdown(s, e, loglines)
         print "after shutdown"
         raise e
+    
+def main():
+    '''
+    initializations
+    '''
+    recv_time = time.time() # time of most recent data from socket
+    s = socket.socket()
+    line = ''               # data from socket
+    line_tail = ''          # helper to deal with cropped lines
+    loglines = ''           # lines to be written to the log file
+    reconnect = True
+    joined = False          # True if bot is in a channel
+    run = True
+    buf = []                # data from socket split by EOL
+    
+    try:
+        while run:
+            clean_eol = False
+            log_enabled = False
+            '''
+            detect connection loss
+            try to reconnect
+            '''
+            if time.time() - recv_time > CON_TIMEOUT:
+                reconnect = True
+                print "set reconnect: True"
+                joined = False
+                print "set joined: False"
+            if reconnect:
+                try:
+                    s.close()
+                    print "socket closed"
+                except Exception as recon_e:
+                    print "Exception trying to reconnect: " + str(e)
+                print "connecting ..."
+                s = conbot()
+                s.setblocking(0) # needet for the select below
+                reconnect = False
+                print "set reconnect: False"
+            '''
+            avoid reconnect spam
+            '''
+            s_ready = select.select([s], [], [], 10)
+            if s_ready:
+                '''
+                avoid 'resource temporarily not available' error
+                because of s.setblocking(0) above
+                '''
+                try:
+                    line = line_tail + s.recv(2048)
+                    recv_time = time.time()
+                except:
+                    line = ''
+                buf = line.split('\n')
+                '''
+                avoid line stubs
+                '''
+                if line[-1:] == '\n':
+                    clean_eol = True
+                if not clean_eol:
+                    line_tail = buf.pop(-1)
+                '''
+                answer PINGs from server,
+                separate the internal junk from lines for the log file
+                '''
+                for b in buf:
+                    if b == '':
+                        continue
+                    print b
+                    words = b.split(' ')
+                    if words[0] == 'PING':
+                        pong = timestamp + ' PONG ' + words[1] + '\n'
+                        #print pong
+                        s.send(pong)
+                        continue
+                    '''
+                    anything above this point should not go into the log file
+                    '''
+                    log_enabled = True
+                    if not joined and words[1] == '376':
+                        s.send('JOIN ' + CHAN + '\n')
+                        joined = True
+                        print "set joined: True"
+                    if log_enabled:
+                        loglines += parse(b)
+            else:
+                reconnect = True
+            if log_enabled:
+                loglines = flush_log(loglines)
+    except Exception as main_e:
+        print "Exception in main(): " + str(main_e)
+        shutdown(s, main_e, loglines)
+        raise main_e
+    
+if __name__ == '__main__':
+    main()
 
