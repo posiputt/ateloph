@@ -303,7 +303,7 @@ def main():
                     print b
                     words = b.split(' ')
                     if words[0] == 'PING':
-                        pong = timestamp + ' PONG ' + words[1] + '\n'
+                        pong = 'PONG ' + words[1] + '\n'
                         #print pong
                         s.send(pong)
                         continue
