@@ -116,6 +116,14 @@ def parse(line):
         #print "log_part ended"
         return logline
 
+    ''' TODO!
+    alt_nick
+    react to 433: nickname already in use
+    send nickname change
+    '''
+    def alt_nick():
+        pass
+
 
     functions = {
             'PRIVMSG':  log_privmsg,
