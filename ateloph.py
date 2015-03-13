@@ -33,7 +33,6 @@ FLUSH_INTERVAL = 3 # num of lines to wait between log buffer flushes
 CON_TIMEOUT = 260.0
 PT_PAUSE = 10 # sleep time before reconnecting after ping timeout
 
-connects = 0
 log_enabled = False
 
 '''
@@ -68,12 +67,11 @@ def flush_log(buf):
     return buf    
 
 # connect to server
-def conbot():
+def conbot(connects):
     s = socket.socket()
     s.connect((SERVER, PORT))
     s.send('NICK ' + NICK[connects%len(NICK)] + '\n')
     s.send('USER ' + IDENT + ' ' + SERVER +' bla: ' + REALNAME + '\n')
-    connects += 1
     return s
     
 # Parser to get rid of irrelvant information
@@ -142,98 +140,6 @@ def parse(line):
         print 'Exception in parse - failed to pass to any appropriate function: ' + str(e)
     return out
     
-def old_main():
-    s = conbot()
-    s.setblocking(0)
-    
-    # Generate a String "buffer" buf.
-    ## Might be unecessary
-    #buf = parse(s.recv(2048))
-
-    try:
-        i = 0 # counter for periodical flushing of buf
-        buf = []
-        loglines = ''  # for periodical flushing to the log file
-        line = ''
-        line_tail = '' # store incomplete lines (not ending with '\n') from the server here
-        last_ping = time.time() # when did the server last ping us?
-        #print last_ping
-
-        while True:
-            clean_eol = False
-            s_ready = select.select([s], [], [], PT_PAUSE)
-            if s_ready:
-                try:
-                    line = line_tail + s.recv(2048)
-                    line_tail = ''
-                    
-                    # catch disconnect
-                    if line.find(':Closing Link:') != -1:
-                        shutdown(s, "connection lost", buf)
-                    # catch ping timeout
-                    elif time.time() - last_ping > CON_TIMEOUT:
-                        last_ping = time.time()
-                        log_enabled = False
-                        print "Ping timeout!"
-                        s.close()
-                        time.sleep(PT_PAUSE)
-                        print "Trying to reconnect"
-                        s = conbot()
-                        
-                    buf = line.split('\n')
-                    
-                    """
-                    does line end with clean EOL?
-                    (most times it won't)
-                    """
-                    if line[-1:] == '\n':
-                        clean_eol = True
-
-                    if not clean_eol:
-                        line_tail = buf.pop(-1)
-                    else:
-                        buf.pop(-1) # remove empty string from split
-                        
-                    for b in buf:
-                        loglines += parse(b)
-
-                    #join AFTER connect is complete
-                    if line.find('Welcome to the freenode') != -1:
-                        s.send('JOIN ' + CHAN + '\n')
-                        s.send('PRIVMSG ' + CHAN + ' :' + ENTRY_MSG + '\n')
-                        s.send('PRIVMSG ' + CHAN + ' :' + INFO + '\n')
-                        log_enabled = True
-
-                    # rude quit command (from anyone)
-                    if line.find(BOT_QUIT) != -1:
-                        s.send('PRIVMSG ' + CHAN + ' :ich geh ja schon\n')
-                        shutdown(s, "ich geh ja schon", buf)
-
-                    line = line.rstrip().split()
-                    #print line
-
-                    # Test method:
-                    # Bot should reply with 'pong' if 'ping'ed.
-                    if (line[0] == 'PING'):
-                        last_ping = time.time()
-                        pong = 'PONG '+line[1]+'\n'
-                        print pong
-                        s.send(pong)
-                        
-                    loglines = flush_log(loglines)
-                except Exception as e:
-                    # print "no new data: " + str(e)
-                    line = ''
-            else:
-                print "socket timed out"
-                s = conbot()
-                s.setblocking(0)
-    except Exception as e:
-        print "in main exception: " + str(e)
-        shutdown(s, e, loglines)
-        print "after shutdown"
-        raise e
-    
 def main():
     '''
     initializations
@@ -244,6 +150,7 @@ def main():
     line_tail = ''          # helper to deal with cropped lines
     loglines = ''           # lines to be written to the log file
     reconnect = True
+    connects = 0
     joined = False          # True if bot is in a channel
     run = True
     buf = []                # data from socket split by EOL
@@ -268,7 +175,8 @@ def main():
                 except Exception as recon_e:
                     print "Exception trying to reconnect: " + str(e)
                 print "connecting ..."
-                s = conbot()
+                s = conbot(connects)
+                connects += 1
                 s.setblocking(0) # needet for the select below
                 reconnect = False
                 print "set reconnect: False"
