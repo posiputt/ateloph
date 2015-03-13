@@ -21,7 +21,8 @@ BOT_QUIT = "hau*ab"
 # Constants
 SERVER = 'chat.freenode.net'
 PORT = 6667
-REALNAME = NICK = "ateloph_posi"
+REALNAME = "ateloph"
+NICK = ["ateloph", "atel0ph", "ate1loph", "ate10ph"]
 IDENT = "posiputt"
 CHAN = "#5"
 # ENTRY_MSG = 'Beep boop, wir testen den logbot. Wer ihn loswerden will, schreibe "' + BOT_QUIT + '".' 
@@ -32,7 +33,7 @@ FLUSH_INTERVAL = 3 # num of lines to wait between log buffer flushes
 CON_TIMEOUT = 260.0
 PT_PAUSE = 10 # sleep time before reconnecting after ping timeout
 
-
+connects = 0
 log_enabled = False
 
 '''
@@ -70,8 +71,9 @@ def flush_log(buf):
 def conbot():
     s = socket.socket()
     s.connect((SERVER, PORT))
-    s.send('NICK ' + NICK + '\n')
+    s.send('NICK ' + NICK[connects%len(NICK)] + '\n')
     s.send('USER ' + IDENT + ' ' + SERVER +' bla: ' + REALNAME + '\n')
+    connects += 1
     return s
     
 # Parser to get rid of irrelvant information
@@ -115,15 +117,6 @@ def parse(line):
         logline = ' '.join([timestamp, nickname, 'left', channel])
         #print "log_part ended"
         return logline
-
-    ''' TODO!
-    alt_nick
-    react to 433: nickname already in use
-    send nickname change
-    '''
-    def alt_nick():
-        pass
-
 
     functions = {
             'PRIVMSG':  log_privmsg,
