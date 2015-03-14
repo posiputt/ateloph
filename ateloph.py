@@ -2,8 +2,8 @@
 Atheloph: an IRC bot that writes a log.
 
 TODOs:
-    1) implement proactive ping so bot knows if it's disconnected
-    2) implement auto-reconnect
+ DONE) implement proactive ping so bot knows if it's disconnected
+ DONE) implement auto-reconnect
     3) HTML logs with one anchor per line (or write a separate script to convert text to html)
 
     0) regularly tidy up code!
@@ -22,7 +22,7 @@ BOT_QUIT = "hau*ab"
 SERVER = 'chat.freenode.net'
 PORT = 6667
 REALNAME = "ateloph"
-NICK = ["ateloph", "atel0ph", "ate1loph", "ate10ph"]
+NICK = ["ateloph", "atel0ph", "ate1oph", "ate10ph"]
 IDENT = "posiputt"
 CHAN = "#5"
 # ENTRY_MSG = 'Beep boop, wir testen den logbot. Wer ihn loswerden will, schreibe "' + BOT_QUIT + '".' 
@@ -111,8 +111,8 @@ def parse(line):
     '''
     def log_quit(timestamp, nickname, words):
         #print "in log_quit"
-        channel = words[2]
-        logline = ' '.join([timestamp, nickname, 'left', channel])
+        #channel = words[2]
+        logline = ' '.join([timestamp, nickname, 'left', CHAN])
         #print "log_part ended"
         return logline
 
@@ -159,15 +159,18 @@ def main():
         while run:
             clean_eol = False
             log_enabled = False
+            timestamp = datetime.datetime.today().strftime("%H:%M:%S")
             '''
             detect connection loss
             try to reconnect
             '''
             if time.time() - recv_time > CON_TIMEOUT:
+                print "connection lost."
                 reconnect = True
                 print "set reconnect: True"
                 joined = False
                 print "set joined: False"
+                loglines += timestamp + ' Connection lost.\n'
             if reconnect:
                 try:
                     s.close()
@@ -180,6 +183,7 @@ def main():
                 s.setblocking(0) # needet for the select below
                 reconnect = False
                 print "set reconnect: False"
+                loglines += timestamp + ' Connecting to ' + SERVER + '\n'
             '''
             avoid reconnect spam
             '''
@@ -209,7 +213,7 @@ def main():
                 for b in buf:
                     if b == '':
                         continue
-                    print b
+                    # print b
                     words = b.split(' ')
                     if words[0] == 'PING':
                         pong = 'PONG ' + words[1] + '\n'
