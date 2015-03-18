@@ -5,6 +5,7 @@ TODOs:
  DONE) implement proactive ping so bot knows if it's disconnected
  DONE) implement auto-reconnect
     3) HTML logs with one anchor per line (or write a separate script to convert text to html)
+    4) NICK and TOPIC functions
 
     0) regularly tidy up code!
 """
@@ -64,7 +65,7 @@ def flush_log(buf):
     #print "file closed"
     buf = ""
     #print "buf reset"
-    return buf    
+    return buf
 
 # connect to server
 def conbot(connects):
