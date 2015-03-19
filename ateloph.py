@@ -23,9 +23,11 @@ BOT_QUIT = "hau*ab"
 SERVER = 'chat.freenode.net'
 PORT = 6667
 REALNAME = "ateloph"
-NICK = ["ateloph", "atel0ph", "ate1oph", "ate10ph"]
+#NICK = ["ateloph_posi", "atel0ph_posi"]
+NICK = ['ateloph', 'ate1oph', 'atel0ph', 'ate10ph']
 IDENT = "posiputt"
-CHAN = "#5"
+#CHAN = "#atelophtest"
+CHAN = '#5'
 # ENTRY_MSG = 'Beep boop, wir testen den logbot. Wer ihn loswerden will, schreibe "' + BOT_QUIT + '".' 
 # INFO = "Das Log ist derzeit sowieso nicht oeffentlich, sondern auf posiputts Rechner. Wer neugierig auf die sources ist oder mitmachen will, siehe hier: https://github.com/posiputt/ateloph"
 ENTRY_MSG = 'entry.'
@@ -74,54 +76,98 @@ def conbot(connects):
     s.send('NICK ' + NICK[connects%len(NICK)] + '\n')
     s.send('USER ' + IDENT + ' ' + SERVER +' bla: ' + REALNAME + '\n')
     return s
-    
-# Parser to get rid of irrelvant information
-def parse(line):
-    '''
-    log_privmsg
-    format IRC PRIVMSG for log
-    input: string timestamp, string nickname, list words
-    return: string logline
-    '''
+
+def parse(line):    
+    # Parser to get rid of irrelvant information
     def log_privmsg(timestamp, nickname, words):
+        '''
+        log_privmsg
+        format IRC PRIVMSG for log
+        input: string timestamp, string nickname, list words
+        return: string logline
+        '''
         #print "in log_privmsg"
+        messge = ''
+        message_startindex = 3
+        separator = ':'
         words[3] = words[3][1:]         # remove the leading colon
-        message = ' '.join(words[3:])
-        logline = ' '.join([timestamp, nickname+':' , message])
+        if words[3][1:] == 'ACTION':
+            separator = ''
+            message_startindex = 4
+            '''
+            remove last character of message
+            for it is a special character
+            and we will not show that!
+            '''
+            words[-1] = words[-1][:-1]
+        else:
+            pass
+        message = ' '.join(words[message_startindex:])
+        logline = ' '.join([timestamp, nickname+separator , message])
         #print "log_privmsg ended"
         return logline
 
-    '''
-    log_join
-    format IRC JOIN for log
-    input: string timestamp, string nickname, list words
-    return: string logline
-    '''
     def log_join(timestamp, nickname, words):
+        '''
+        log_join
+        format IRC JOIN for log
+        input: string timestamp, string nickname, list words
+        return: string logline
+        '''
         #print "in log_join"
         channel = words[2]
         logline = ' '.join([timestamp, nickname, 'joined', channel])
         #print "log_join ended"
         return logline
 
-    '''
-    log_quit
-    format IRC QUIT for log
-    input: string timestamp, string nickname, list words
-    return: string logline
-    '''
     def log_quit(timestamp, nickname, words):
+        '''
+        log_quit
+        format IRC QUIT for log
+        input: string timestamp, string nickname, list words
+        return: string logline
+        '''
         #print "in log_quit"
         #channel = words[2]
         logline = ' '.join([timestamp, nickname, 'left', CHAN])
         #print "log_part ended"
+        return logline
+    
+    def log_nick(timestamp, nickname, words):
+        '''
+        log_nick
+        format IRC NICK for log
+        input: string timestamp, string nickname, list words
+        return string logline
+        '''
+        print words
+        new_nickname = words[2][1:]
+        logline = ' '.join([timestamp, nickname, 'is now known as', new_nickname])
+        return logline
+    
+    def log_topic(timestamp, nickname, words):
+        '''
+        log_nick
+        format IRC TOPIC for log
+        input: string timestamp, string nickname, list words
+        return string logline
+        '''
+        print words
+        '''
+        join only the words of the topic
+        then remove leading colon
+        '''
+        topic = ' '.join(words[3:])[1:]
+        logline = ' '.join([timestamp, nickname, 'changed the topic to:', topic])
         return logline
 
     functions = {
             'PRIVMSG':  log_privmsg,
             'JOIN':     log_join,
             'QUIT':     log_quit,
-            'PART':     log_quit
+            'PART':     log_quit,
+            'NICK':     log_nick,
+            'TOPIC':    log_topic
     }
 
     out = ''
@@ -214,7 +260,7 @@ def main():
                 for b in buf:
                     if b == '':
                         continue
-                    # print b
+                    print b
                     words = b.split(' ')
                     if words[0] == 'PING':
                         pong = 'PONG ' + words[1] + '\n'
