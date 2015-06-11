@@ -1,4 +1,4 @@
-#!/urs/bin/env python
+#!/urs/bin/python2
 
 import sys
 import socket
