@@ -97,7 +97,7 @@ def parse(line):
             '''
             remove last character of message
             for it is a special character
-            and we will not show that!
+            that we! shall not! show!
             '''
             words[-1] = words[-1][:-1]
         else:
@@ -260,7 +260,7 @@ def main():
                 for b in buf:
                     if b == '':
                         continue
-                    print b
+                    #print b
                     words = b.split(' ')
                     if words[0] == 'PING':
                         pong = 'PONG ' + words[1] + '\n'
