@@ -6,7 +6,7 @@ import datetime
 import time
 import select
 
-class connection:
+class Connection:
     '''
     class connection
     ----------------
@@ -29,13 +29,14 @@ class connection:
         self.EOL = '\n'
         
     def run(self):
+        run = True
         print "[>] Connecting to " + self.SERVER
         try:
             self.connect()
         except Exception as e:
             print "[!] Error: " + str(e)
         stub = ''
-        while True:
+        while run:
             stream = stub + self.listen(4096)
             lines = stream.split(self.EOL)
             if stream[-1] != self.EOL:
@@ -89,5 +90,5 @@ if __name__ == '__main__':
     realname = 'ateloph test'
     nickname = 'ateloph_test'
     ident = 'posiputt'
-    freenode = connection(server, port, channel, realname, nickname, ident)
+    freenode = Connection(server, port, channel, realname, nickname, ident)
     freenode.run()
