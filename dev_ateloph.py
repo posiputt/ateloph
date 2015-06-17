@@ -81,6 +81,9 @@ class Connection:
                 channel = words[2]
                 message = ' '.join(words[3:])
                 print ("[-L-] " + sender + ' ' + channel + ' ' + message)
+                f = open('test', 'a')
+                f.write(line + self.EOL)
+                f.close()
             else:
                 if indicator == '376':
                     self.join()
