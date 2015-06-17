@@ -30,18 +30,18 @@ class Connection:
         
     def run(self):
         run = True
-        print ("[>] Connecting to " + self.SERVER)
-        self.connect()
-        #try:
-        #    self.connect()
-        #except:
-        #    print ('[ERR] Something went wrong while connecting')
+        print ("[CON] Connecting to " + self.SERVER)
+        try:
+            self.connect()
+        except Exception as e:
+            print ('[ERR] Something went wrong while connecting.'),
+            raise e
         stub = ''
         while run:
             stream = stub + self.listen(4096)
             if stream == '':
                 continue
-            print (stream)
+            #print (stream)
             lines = stream.split(self.EOL)
             if stream[-1] != self.EOL:
                 stub = lines.pop(-1)
@@ -73,20 +73,20 @@ class Connection:
         if words[0] == 'PING':
             pong = 'PONG ' + words[1] + self.EOL
             self.s.send(pong.encode('utf-8'))
-            print ("[P] " + pong)
+            print ("[-P-] " + pong)
         elif words[0][0] == ':':
             sender = words[0]
             indicator = words[1]
             if indicator in log_this:
                 channel = words[2]
                 message = ' '.join(words[3:])
-                print ("[L] " + sender + ' ' + channel + ' ' + message)
+                print ("[-L-] " + sender + ' ' + channel + ' ' + message)
             else:
                 if indicator == '376':
                     self.join()
     
     def join(self):
-        print ("[J] Joining " + self.CHANNEL)
+        print ("[-J-] Joining " + self.CHANNEL)
         join_msg = 'JOIN ' + self.CHANNEL + self.EOL
         self.s.send(join_msg.encode('utf-8'))
         
