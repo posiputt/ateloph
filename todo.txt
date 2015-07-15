@@ -1,7 +1,9 @@
 Features to be included in rewrite
 ----------------------------------
 
-* Unicode
+* Unicode, check for Latin-1, convert if necessary
 * Spaces at beginning of line should not disappear (main suspect: split)
 * Make PHP unnecessary for web-view of logs (make logs html?)
 * Expand links to tweets?
+* Show number of reconnects in bot nickname ("ateloph[0]", "ateloph[1]", etc)
+* Reconnect automatically
