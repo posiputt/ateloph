@@ -80,7 +80,7 @@ class Connection:
             if indicator in log_this:
                 channel = words[2]
                 message = ' '.join(words[3:])
-                print ("[-L-] " + sender + ' ' + channel + ' ' + message)
+                print ("[-L-] " + sender + ' ' + indicator + ' ' + channel + ' ' + message)
                 f = open('test', 'a')
                 f.write(line + self.EOL)
                 f.close()
