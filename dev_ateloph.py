@@ -85,7 +85,9 @@ class Connection:
             if indicator in log_this:
                 channel = words[2]
                 message = ' '.join(words[3:])
-                print ("[-L-] " + sender + ' ' + indicator + ' ' + channel + ' ' + message)
+                # print ("[-L-] " + sender + ' ' + indicator + ' ' + channel + ' ' + message)
+                line = ' '.join(("[-L-] ", sender, indicator, channel, message))
+                print (line)
                 f = open('test', 'a')
                 f.write(line + self.EOL)
                 f.close()
@@ -97,6 +99,8 @@ class Connection:
         print ("[-J-] Joining " + self.CHANNEL)
         join_msg = 'JOIN ' + self.CHANNEL + self.EOL
         self.s.send(join_msg.encode('utf-8'))
+
+# END OF class Connection
         
 
 if __name__ == '__main__':
@@ -105,6 +109,6 @@ if __name__ == '__main__':
     channel = '#dumme-gesellschaft'
     realname = 'ateloph test'
     nickname = 'ateloph_test'
-    ident = 'posiputt'
+    ident = 'ateloph'
     freenode = Connection(server, port, channel, realname, nickname, ident)
     freenode.run()
