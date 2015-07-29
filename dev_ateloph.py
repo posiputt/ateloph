@@ -63,7 +63,12 @@ class Connection:
     def listen(self, chars):
         s_ready = select.select([self.s],[],[],10)
         if s_ready:
-            return self.s.recv(chars).decode()
+            try:
+                return self.s.recv(chars).decode('utf-8')
+            except: # Exception as e:
+                return self.s.recv(chars).decode('latin-1')
+                print ("---------------------------LATIN 1---------------------")
+                # raise e
     
     def parse(self, line):
         if line == '':
