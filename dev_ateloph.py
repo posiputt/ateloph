@@ -67,7 +67,7 @@ class Connection:
                 return self.s.recv(chars).decode('utf-8')
             except: # Exception as e:
                 return self.s.recv(chars).decode('latin-1')
-                print ("---------------------------LATIN 1---------------------")
+                print ("-p-o-s-s-i-b-l-y---LATIN 1---------------------")
                 # raise e
     
     def parse(self, line):
@@ -88,9 +88,9 @@ class Connection:
                 # print ("[-L-] " + sender + ' ' + indicator + ' ' + channel + ' ' + message)
                 line = ' '.join(("[-L-] ", sender, indicator, channel, message))
                 print (line)
-                f = open('test', 'a')
-                f.write(line + self.EOL)
-                f.close()
+                with  open('test', 'a') as f:
+                    f.write(line + self.EOL)
+                    f.close()
             else:
                 if indicator == '376':
                     self.join()
