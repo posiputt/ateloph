@@ -12,12 +12,12 @@ class Connection:
     ----------------
     handles a connection from beginning to end
     init values:
-        string  server
-        int     port
-        string  channel
-        string  realname
-        string  nickname
-        string  ident
+        string  server      # irc server url to connect to
+        int     port        # the port the server is listening on
+        string  channel     # the channel the bot will log
+        string  realname    # the bot's real name
+        string  nickname    # the bot's nickname
+        string  ident       # ident stuff whatever
     '''
     def __init__(self, server, port, channel, realname, nickname, ident):
         self.SERVER = server
@@ -27,17 +27,23 @@ class Connection:
         self.NICKNAME = nickname
         self.IDENT = ident
         self.EOL = '\n'
+        self.LASTPING = time.time()     # timeout detection helper
+        self.PINGTIMEOUT = 240          # ping timeout in seconds
+        self.CONNECTED = False          # connection status, init False
         
     def run(self):
         run = True
-        print ("[CON] Connecting to " + self.SERVER)
-        try:
-            self.connect()
-        except Exception as e:
-            print ('[ERR] Something went wrong while connecting.'),
-            raise e
         stub = ''
         while run:
+            if not self.CONNECTED:
+                try:
+                    self.CONNECTED = True
+                    self.connect()
+                    print ("[CON] Connecting to " + self.SERVER)
+                except Exception as e:
+                    self.CONNECTED = False
+                    print ('[ERR] Something went wrong while connecting.'),
+                    raise e
             stream = stub + self.listen(4096)
             if stream == '':
                 continue
@@ -72,10 +78,15 @@ class Connection:
     
     def parse(self, line):
         if line == '':
+            if time.time() - self.LASTPING > self.PINGTIMEOUT:
+                self.CONNECTED = False
+                print ("PING timeout ... reconnecting")
             return
         log_this = ['PRIVMSG', 'JOIN', 'PART', 'KICK', 'TOPIC']
         words = line.split(' ')
         if words[0] == 'PING':
+            print (time.time() - self.LASTPING)
+            self.LASTPING = time.time()
             pong = 'PONG ' + words[1] + self.EOL
             self.s.send(pong.encode('utf-8'))
             print ("[-P-] " + pong)
@@ -86,7 +97,7 @@ class Connection:
                 channel = words[2]
                 message = ' '.join(words[3:])
                 # print ("[-L-] " + sender + ' ' + indicator + ' ' + channel + ' ' + message)
-                line = ' '.join(("[-L-] ", sender, indicator, channel, message))
+                # line = ' '.join(("[-L-] ", sender, indicator, channel, message))
                 print (line)
                 with  open('test', 'a') as f:
                     f.write(line + self.EOL)
