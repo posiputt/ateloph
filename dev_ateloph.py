@@ -27,6 +27,9 @@ class Connection:
         self.NICKNAME = nickname
         self.IDENT = ident
         self.EOL = '\n'
+        
+        self.LOG_THIS = ['PRIVMSG', 'JOIN', 'PART', 'KICK', 'TOPIC']
+        
         self.LASTPING = time.time()     # timeout detection helper
         self.PINGTIMEOUT = 240          # ping timeout in seconds
         self.CONNECTED = False          # connection status, init False
@@ -82,7 +85,6 @@ class Connection:
                 self.CONNECTED = False
                 print ("PING timeout ... reconnecting")
             return
-        log_this = ['PRIVMSG', 'JOIN', 'PART', 'KICK', 'TOPIC']
         words = line.split(' ')
         if words[0] == 'PING':
             print (time.time() - self.LASTPING)
@@ -93,12 +95,12 @@ class Connection:
         elif words[0][0] == ':':
             sender = words[0]
             indicator = words[1]
-            if indicator in log_this:
+            if indicator in self.LOG_THIS:
                 channel = words[2]
                 message = ' '.join(words[3:])
                 # print ("[-L-] " + sender + ' ' + indicator + ' ' + channel + ' ' + message)
                 # line = ' '.join(("[-L-] ", sender, indicator, channel, message))
-                print (line)
+                # print (line)
                 with  open('test', 'a') as f:
                     f.write(line + self.EOL)
                     f.close()
@@ -110,6 +112,12 @@ class Connection:
         print ("[-J-] Joining " + self.CHANNEL)
         join_msg = 'JOIN ' + self.CHANNEL + self.EOL
         self.s.send(join_msg.encode('utf-8'))
+        
+    def handle_indicator(indicator, line):
+        if indicator not in self.LOG_THIS:
+            return -1
+        
+        
 
 # END OF class Connection
         
