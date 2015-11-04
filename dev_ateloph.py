@@ -24,7 +24,8 @@ class Connection:
         self.PORT = port
         self.CHANNEL = channel
         self.REALNAME = realname
-        self.NICKNAME = nickname
+        self.reconnects = 0
+        self.NICKNAME = nickname + "[%i]" % self.reconnects
         self.IDENT = ident
         self.EOL = '\n'
         
@@ -42,6 +43,7 @@ class Connection:
                 try:
                     self.CONNECTED = True
                     self.connect()
+                    self.reconnects += 1
                     print ("[CON] Connecting to " + self.SERVER)
                 except Exception as e:
                     self.CONNECTED = False
