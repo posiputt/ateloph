@@ -113,10 +113,8 @@ class Connection:
                     words[3] = words[3][1:] # remove leading colon
                 for w in words[3:]:
                     if w == '':
-                        print('w is ""')
                         message += " "
                     else:
-                        print('w is not ""')
                         if (w.startswith("http://") or \
                         w.startswith("https://")) and \
                         len(w.split('.')) > 1:
@@ -124,7 +122,9 @@ class Connection:
                                 req = requests.get(w[:-1])
                                 tree = fromstring(req.content)
                                 title = tree.findtext('.//title')
-                                print ("I found a link! " + title)
+                                post_to_chan = "NOTICE " + channel + " :I found a link! " + title + self.EOL
+                                print(post_to_chan)
+                                self.s.send(post_to_chan.encode('utf-8'))                                
                             except:
                                 print("Page not found")
                         if message == '':
