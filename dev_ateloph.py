@@ -5,6 +5,8 @@ import socket
 import datetime
 import time
 import select
+import requests
+from lxml.html import fromstring
 
 class Connection:
     '''
@@ -95,8 +97,9 @@ class Connection:
             self.s.send(pong.encode('utf-8'))
             print ("[-P-] " + pong)
         elif words[0][0] == ':':
+            words[0] = words[0][1:]
             sender = words[0].split('!')
-            nick = sender[0][1:]    # cut leading colon
+            nick = sender[0]
             indicator = words[1]
             channel = words[2]
             if indicator in self.LOG_THIS:
@@ -106,16 +109,30 @@ class Connection:
                 except this keeps multiple spaces
                 for stuff like ascii art
                 '''
+                if len(words) > 3:
+                    words[3] = words[3][1:] # remove leading colon
                 for w in words[3:]:
                     if w == '':
+                        print('w is ""')
                         message += " "
                     else:
+                        print('w is not ""')
+                        if (w.startswith("http://") or \
+                        w.startswith("https://")) and \
+                        len(w.split('.')) > 1:
+                            try:
+                                req = requests.get(w[:-1])
+                                tree = fromstring(req.content)
+                                title = tree.findtext('.//title')
+                                print ("I found a link! " + title)
+                            except:
+                                print("Page not found")
                         if message == '':
                             message = w
                         else:
                             message = " ".join((message, w))
-                #cut leading colon
-                message = message[1:]
+                # cut leading colon
+                # message = message[1:]
                 '''
                 logline will be written in the log file
                 '''
@@ -157,7 +174,7 @@ class Connection:
 if __name__ == '__main__':
     server = 'chat.freenode.net'
     port = 6667
-    channel = '#dumme-gesellschaft'
+    channel = '#ateltest'
     realname = 'ateloph test'
     nickname = 'ateloph_test'
     ident = 'ateloph'
