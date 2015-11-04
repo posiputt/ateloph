@@ -27,14 +27,15 @@ class Connection:
         self.CHANNEL = channel
         self.REALNAME = realname
         self.reconnects = 0
-        self.NICKNAME = nickname + "[%i]" % self.reconnects
+        self.NICKNAME_FIXED = nickname
+        self.NICKNAME = self.NICKNAME_FIXED + "[%i]" % self.reconnects
         self.IDENT = ident
         self.EOL = '\n'
         
         self.LOG_THIS = ['PRIVMSG', 'JOIN', 'PART', 'KICK', 'TOPIC']
         
         self.LASTPING = time.time()     # timeout detection helper
-        self.PINGTIMEOUT = 240          # ping timeout in seconds
+        self.PINGTIMEOUT = 600          # ping timeout in seconds
         self.CONNECTED = False          # connection status, init False
         
     def run(self):
@@ -43,6 +44,12 @@ class Connection:
         while run:
             if not self.CONNECTED:
                 try:
+                    if not self.reconnects == 0:
+                        print("reconnecting attempt no. %i" % self.reconnects)
+                        self.s.close()
+                        self.LASTPING = time.time()
+                        time.sleep(10)
+                    self.NICKNAME = self.NICKNAME_FIXED + "[%i]" % self.reconnects
                     self.CONNECTED = True
                     self.connect()
                     self.reconnects += 1
@@ -97,12 +104,13 @@ class Connection:
             self.s.send(pong.encode('utf-8'))
             print ("[-P-] " + pong)
         elif words[0][0] == ':':
-            words[0] = words[0][1:]
+            words[0] = words[0][1:] # remove leading colon
             sender = words[0].split('!')
             nick = sender[0]
             indicator = words[1]
             channel = words[2]
             if indicator in self.LOG_THIS:
+                what_the_bot_said = ''
                 message = ''
                 '''
                 this works like " ".join()
@@ -118,34 +126,44 @@ class Connection:
                         if (w.startswith("http://") or \
                         w.startswith("https://")) and \
                         len(w.split('.')) > 1:
-                            try:
-                                req = requests.get(w[:-1])
-                                tree = fromstring(req.content)
-                                title = tree.findtext('.//title')
-                                post_to_chan = "NOTICE " + channel + " :I found a link! " + title + self.EOL
+                            if not "192.168." in w:
+                                w = w[:-1]
+                                try:
+                                    req = requests.get(w)
+                                    tree = fromstring(req.content)
+                                    title = tree.findtext('.//title')
+                                    post_to_chan = " ".join((title, w))
+                                    print(post_to_chan)                             
+                                except:
+                                    post_to_chan = " ".join((nick+":", "Sorry, couldn't fetch page title."))
+                                what_the_bot_said = post_to_chan
+                                post_to_chan = "NOTICE " + channel + " :" + post_to_chan + self.EOL
+                                print("wtf:")
                                 print(post_to_chan)
-                                self.s.send(post_to_chan.encode('utf-8'))                                
-                            except:
-                                print("Page not found")
-                        if message == '':
-                            message = w
-                        else:
-                            message = " ".join((message, w))
+                                self.s.send(post_to_chan.encode('utf-8'))
+                            else:
+                                pass
+                            if message == '':
+                                message = w
+                            else:
+                                message = " ".join((message, w))
                 # cut leading colon
                 # message = message[1:]
                 '''
                 logline will be written in the log file
                 '''
                 if indicator == 'PRIVMSG':
-                    logline = " ".join((nick + ':', message))
+                    logline = " ".join((nick + ':', message, self.EOL))
                 elif indicator == 'JOIN':
-                    logline = " ".join((nick, 'joined', channel))
+                    logline = " ".join((nick, 'joined', channel, self.EOL))
                 elif indicator == 'PART':
-                    logline = " ".join((nick, 'left', channel, message))
+                    logline = " ".join((nick, 'left', channel, message, self.EOL))
                 elif indicator == 'TOPIC':
-                    logline = " ".join((nick, 'set the topic to:', message))
+                    logline = " ".join((nick, 'set the topic to:', message, self.EOL))
                 else:
                     logline = line
+                if not what_the_bot_said == '':
+                    logline += self.EOL + self.NICKNAME+": " + what_the_bot_said + self.EOL
                 '''
                 don't log queries
                 '''
@@ -156,6 +174,8 @@ class Connection:
             else:
                 if indicator == '376':
                     self.join()
+                elif indicator == '433':
+                    self.CONNECTED = False
     
     def join(self):
         print ("[-J-] Joining " + self.CHANNEL)
