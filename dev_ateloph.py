@@ -95,17 +95,47 @@ class Connection:
             self.s.send(pong.encode('utf-8'))
             print ("[-P-] " + pong)
         elif words[0][0] == ':':
-            sender = words[0]
+            sender = words[0].split('!')
+            nick = sender[0][1:]    # cut leading colon
             indicator = words[1]
+            channel = words[2]
             if indicator in self.LOG_THIS:
-                channel = words[2]
-                message = ' '.join(words[3:])
-                # print ("[-L-] " + sender + ' ' + indicator + ' ' + channel + ' ' + message)
-                # line = ' '.join(("[-L-] ", sender, indicator, channel, message))
-                # print (line)
-                with  open('test', 'a') as f:
-                    f.write(line + self.EOL)
-                    f.close()
+                message = ''
+                '''
+                this works like " ".join()
+                except this keeps multiple spaces
+                for stuff like ascii art
+                '''
+                for w in words[3:]:
+                    if w == '':
+                        message += " "
+                    else:
+                        if message == '':
+                            message = w
+                        else:
+                            message = " ".join((message, w))
+                #cut leading colon
+                message = message[1:]
+                '''
+                logline will be written in the log file
+                '''
+                if indicator == 'PRIVMSG':
+                    logline = " ".join((nick + ':', message))
+                elif indicator == 'JOIN':
+                    logline = " ".join((nick, 'joined', channel))
+                elif indicator == 'PART':
+                    logline = " ".join((nick, 'left', channel, message))
+                elif indicator == 'TOPIC':
+                    logline = " ".join((nick, 'set the topic to:', message))
+                else:
+                    logline = line
+                '''
+                don't log queries
+                '''
+                if not channel == self.NICKNAME:
+                    with  open('test', 'a') as f:
+                        f.write(logline + self.EOL)
+                        f.close()
             else:
                 if indicator == '376':
                     self.join()
