@@ -2,12 +2,13 @@ Features to be included in rewrite
 ----------------------------------
 
 * Unicode, check for Latin-1, convert if necessary
-* Spaces at beginning of line should not disappear (main suspect: split)
 * Make PHP unnecessary for web-view of logs (make logs html?)
-* Expand links so the linked page's <title> is posted to the channel
-    - python requests or urllib2?
 * python.logging? (via andrej)
 
 DONE (but needs testing):
 * Reconnect automatically
 * Show number of reconnects in bot nickname ("ateloph[0]", "ateloph[1]", etc)
+* Expand links so the linked page's <title> is posted to the channel
+
+DONE
+* Spaces at beginning of line should not disappear (main suspect: split)
