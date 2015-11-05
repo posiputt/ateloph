@@ -133,7 +133,8 @@ class Connection:
                                     tree = fromstring(req.content)
                                     title = tree.findtext('.//title')
                                     post_to_chan = " ".join((title, w))
-                                    print(post_to_chan)                             
+                                    post_to_chan = post_to_chan.replace("\n", " ")
+                                    print(post_to_chan)
                                 except:
                                     post_to_chan = " ".join((nick+":", "Sorry, couldn't fetch page title."))
                                 what_the_bot_said = post_to_chan
