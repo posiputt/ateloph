@@ -5,6 +5,9 @@ Features to be included in rewrite
 * Make PHP unnecessary for web-view of logs (make logs html?)
 * python.logging? (via andrej)
 
+ISSUES
+* bot can't properly handle more than 1 link per line
+
 DONE (but needs testing):
 * Reconnect automatically
 * Show number of reconnects in bot nickname ("ateloph[0]", "ateloph[1]", etc)
