@@ -1,291 +1,204 @@
-"""
-Atheloph: an IRC bot that writes a log.
+#!/usr/bin/env python3
 
-TODOs:
- DONE) implement proactive ping so bot knows if it's disconnected
- DONE) implement auto-reconnect
-    3) HTML logs with one anchor per line (or write a separate script to convert text to html)
-    4) NICK and TOPIC functions
-
-    0) regularly tidy up code!
-"""
-
-import socket
 import sys
+import socket
 import datetime
 import time
 import select
+import requests
+from lxml.html import fromstring
 
-# Commands for controlling the bot inside a channel
-BOT_QUIT = "hau*ab"
-
-# Constants
-SERVER = 'chat.freenode.net'
-PORT = 6667
-REALNAME = "ateloph"
-#NICK = ["ateloph_posi", "atel0ph_posi"]
-NICK = ['ateloph', 'ate1oph', 'atel0ph', 'ate10ph']
-IDENT = "posiputt"
-#CHAN = "#atelophtest"
-CHAN = '#5'
-# ENTRY_MSG = 'Beep boop, wir testen den logbot. Wer ihn loswerden will, schreibe "' + BOT_QUIT + '".' 
-# INFO = "Das Log ist derzeit sowieso nicht oeffentlich, sondern auf posiputts Rechner. Wer neugierig auf die sources ist oder mitmachen will, siehe hier: https://github.com/posiputt/ateloph"
-ENTRY_MSG = 'entry.'
-INFO = 'info.'
-FLUSH_INTERVAL = 3 # num of lines to wait between log buffer flushes
-CON_TIMEOUT = 260.0
-PT_PAUSE = 10 # sleep time before reconnecting after ping timeout
-
-log_enabled = False
-
-'''
-Secure shutdown: 
-The method closes the socket and flushes the buffer to the log.
-Input: Socket socket, String msg, List buf
-Outcome: Quits program.
-'''
-def shutdown(socket, msg, buf):
-    socket.close()
-    buf = flush_log(buf)
-    print msg
-    sys.exit("Exiting. Log has been written.")
-
-'''
-Flush log:
-save current buffer to file, return empty buffer to avoid redundancy
-Input: String buf
-Return: empty String buf
-'''
-def flush_log(buf):
-    #print 'flushing log buffer to file'
-    now = datetime.datetime.today()
-    with open(str(now.date()) +'.log', 'a') as out:
-        #print "in with-statement"
-        out.write(buf)
-        #print "written to file"
-    out.close()
-    #print "file closed"
-    buf = ""
-    #print "buf reset"
-    return buf
-
-# connect to server
-def conbot(connects):
-    s = socket.socket()
-    s.connect((SERVER, PORT))
-    s.send('NICK ' + NICK[connects%len(NICK)] + '\n')
-    s.send('USER ' + IDENT + ' ' + SERVER +' bla: ' + REALNAME + '\n')
-    return s
-
-def parse(line):    
-    # Parser to get rid of irrelvant information
-    def log_privmsg(timestamp, nickname, words):
-        '''
-        log_privmsg
-        format IRC PRIVMSG for log
-        input: string timestamp, string nickname, list words
-        return: string logline
-        '''
-        #print "in log_privmsg"
-        messge = ''
-        message_startindex = 3
-        separator = ':'
-        words[3] = words[3][1:]         # remove the leading colon
-        if words[3][1:] == 'ACTION':
-            separator = ''
-            message_startindex = 4
-            '''
-            remove last character of message
-            for it is a special character
-            that we! shall not! show!
-            '''
-            words[-1] = words[-1][:-1]
-        else:
-            pass
-        message = ' '.join(words[message_startindex:])
-        logline = ' '.join([timestamp, nickname+separator , message])
-        #print "log_privmsg ended"
-        return logline
-
-    def log_join(timestamp, nickname, words):
-        '''
-        log_join
-        format IRC JOIN for log
-        input: string timestamp, string nickname, list words
-        return: string logline
-        '''
-        #print "in log_join"
-        channel = words[2]
-        logline = ' '.join([timestamp, nickname, 'joined', channel])
-        #print "log_join ended"
-        return logline
-
-    def log_quit(timestamp, nickname, words):
-        '''
-        log_quit
-        format IRC QUIT for log
-        input: string timestamp, string nickname, list words
-        return: string logline
-        '''
-        #print "in log_quit"
-        #channel = words[2]
-        logline = ' '.join([timestamp, nickname, 'left', CHAN])
-        #print "log_part ended"
-        return logline
-    
-    def log_nick(timestamp, nickname, words):
-        '''
-        log_nick
-        format IRC NICK for log
-        input: string timestamp, string nickname, list words
-        return string logline
-        '''
-        print words
-        new_nickname = words[2][1:]
-        logline = ' '.join([timestamp, nickname, 'is now known as', new_nickname])
-        return logline
-    
-    def log_topic(timestamp, nickname, words):
-        '''
-        log_nick
-        format IRC TOPIC for log
-        input: string timestamp, string nickname, list words
-        return string logline
-        '''
-        print words
-        '''
-        join only the words of the topic
-        then remove leading colon
-        '''
-        topic = ' '.join(words[3:])[1:]
-        logline = ' '.join([timestamp, nickname, 'changed the topic to:', topic])
-        return logline
-
-    functions = {
-            'PRIVMSG':  log_privmsg,
-            'JOIN':     log_join,
-            'QUIT':     log_quit,
-            'PART':     log_quit,
-            'NICK':     log_nick,
-            'TOPIC':    log_topic
-    }
-
-    out = ''
-    #print line
-    words = line.split()
-
-    timestamp = datetime.datetime.today().strftime("%H:%M:%S")
-    nickname = words[0].split('!')[0][1:]
-    #print nickname
-    indicator = words[1]
-    
-    try:
-        l = functions[indicator](timestamp, nickname, words)
-        #print l
-        out = l + '\n'
-    except Exception as e:
-        print 'Exception in parse - failed to pass to any appropriate function: ' + str(e)
-    return out
-    
-def main():
+class Connection:
     '''
-    initializations
+    class connection
+    ----------------
+    handles a connection from beginning to end
+    init values:
+        string  server      # irc server url to connect to
+        int     port        # the port the server is listening on
+        string  channel     # the channel the bot will log
+        string  realname    # the bot's real name
+        string  nickname    # the bot's nickname
+        string  ident       # ident stuff whatever
     '''
-    recv_time = time.time() # time of most recent data from socket
-    s = socket.socket()
-    line = ''               # data from socket
-    line_tail = ''          # helper to deal with cropped lines
-    loglines = ''           # lines to be written to the log file
-    reconnect = True
-    connects = 0
-    joined = False          # True if bot is in a channel
-    run = True
-    buf = []                # data from socket split by EOL
-    
-    try:
+    def __init__(self, server, port, channel, realname, nickname, ident):
+        self.SERVER = server
+        self.PORT = port
+        self.CHANNEL = channel
+        self.REALNAME = realname
+        self.reconnects = 0
+        self.NICKNAME_FIXED = nickname
+        self.NICKNAME = self.NICKNAME_FIXED + "[%i]" % self.reconnects
+        self.IDENT = ident
+        self.EOL = '\n'
+        
+        self.LOG_THIS = ['PRIVMSG', 'JOIN', 'PART', 'KICK', 'TOPIC']
+        
+        self.LASTPING = time.time()     # timeout detection helper
+        self.PINGTIMEOUT = 600          # ping timeout in seconds
+        self.CONNECTED = False          # connection status, init False
+        
+    def run(self):
+        run = True
+        stub = ''
         while run:
-            clean_eol = False
-            log_enabled = False
-            timestamp = datetime.datetime.today().strftime("%H:%M:%S")
-            '''
-            detect connection loss
-            try to reconnect
-            '''
-            if time.time() - recv_time > CON_TIMEOUT:
-                print "connection lost."
-                reconnect = True
-                print "set reconnect: True"
-                joined = False
-                print "set joined: False"
-                loglines += timestamp + ' Connection lost.\n'
-            if reconnect:
+            if not self.CONNECTED:
                 try:
-                    s.close()
-                    print "socket closed"
-                except Exception as recon_e:
-                    print "Exception trying to reconnect: " + str(e)
-                print "connecting ..."
-                s = conbot(connects)
-                connects += 1
-                s.setblocking(0) # needet for the select below
-                reconnect = False
-                print "set reconnect: False"
-                loglines += timestamp + ' Connecting to ' + SERVER + '\n'
-            '''
-            avoid reconnect spam
-            '''
-            s_ready = select.select([s], [], [], 10)
-            if s_ready:
-                '''
-                avoid 'resource temporarily not available' error
-                because of s.setblocking(0) above
-                '''
-                try:
-                    line = line_tail + s.recv(2048)
-                    recv_time = time.time()
-                except:
-                    line = ''
-                buf = line.split('\n')
-                '''
-                avoid line stubs
-                '''
-                if line[-1:] == '\n':
-                    clean_eol = True
-                if not clean_eol:
-                    line_tail = buf.pop(-1)
-                '''
-                answer PINGs from server,
-                separate the internal junk from lines for the log file
-                '''
-                for b in buf:
-                    if b == '':
-                        continue
-                    #print b
-                    words = b.split(' ')
-                    if words[0] == 'PING':
-                        pong = 'PONG ' + words[1] + '\n'
-                        #print pong
-                        s.send(pong)
-                        continue
-                    '''
-                    anything above this point should not go into the log file
-                    '''
-                    log_enabled = True
-                    if not joined and words[1] == '376':
-                        s.send('JOIN ' + CHAN + '\n')
-                        joined = True
-                        print "set joined: True"
-                    if log_enabled:
-                        loglines += parse(b)
+                    if not self.reconnects == 0:
+                        print("reconnecting attempt no. %i" % self.reconnects)
+                        self.s.close()
+                        self.LASTPING = time.time()
+                        time.sleep(10)
+                    self.NICKNAME = self.NICKNAME_FIXED + "[%i]" % self.reconnects
+                    self.CONNECTED = True
+                    self.connect()
+                    self.reconnects += 1
+                    print ("[CON] Connecting to " + self.SERVER)
+                except Exception as e:
+                    self.CONNECTED = False
+                    print ('[ERR] Something went wrong while connecting.'),
+                    raise e
+            stream = stub + self.listen(4096)
+            if stream == '':
+                continue
+            #print (stream)
+            lines = stream.split(self.EOL)
+            if stream[-1] != self.EOL:
+                stub = lines.pop(-1)
             else:
-                reconnect = True
-            if log_enabled:
-                loglines = flush_log(loglines)
-    except Exception as main_e:
-        print "Exception in main(): " + str(main_e)
-        shutdown(s, main_e, loglines)
-        raise main_e
+                stub = ''
+            for l in lines:
+                print ("[RAW] " + l)
+                self.parse(l)
+                
+    def connect(self):
+        self.s = socket.socket()
+        self.s.connect((self.SERVER, self.PORT))
+        connection_msg = []
+        connection_msg.append('NICK ' + self.NICKNAME + self.EOL)
+        connection_msg.append('USER ' + self.IDENT + ' ' + self.SERVER + ' bla: ' + self.REALNAME + self.EOL)
+        self.s.send(connection_msg[0].encode('utf-8'))
+        self.s.send(connection_msg[1].encode('utf-8'))
+        
+    def listen(self, chars):
+        s_ready = select.select([self.s],[],[],10)
+        if s_ready:
+            try:
+                return self.s.recv(chars).decode('utf-8')
+            except: # Exception as e:
+                return self.s.recv(chars).decode('latin-1')
+                print ("-p-o-s-s-i-b-l-y---LATIN 1---------------------")
+                # raise e
     
-if __name__ == '__main__':
-    main()
+    def parse(self, line):
+        if line == '':
+            if time.time() - self.LASTPING > self.PINGTIMEOUT:
+                self.CONNECTED = False
+                print ("PING timeout ... reconnecting")
+            return
+        words = line.split(' ')
+        if words[0] == 'PING':
+            print (time.time() - self.LASTPING)
+            self.LASTPING = time.time()
+            pong = 'PONG ' + words[1] + self.EOL
+            self.s.send(pong.encode('utf-8'))
+            print ("[-P-] " + pong)
+        elif words[0][0] == ':':
+            words[0] = words[0][1:] # remove leading colon
+            sender = words[0].split('!')
+            nick = sender[0]
+            indicator = words[1]
+            channel = words[2]
+            if indicator in self.LOG_THIS:
+                what_the_bot_said = ''
+                message = ''
+                '''
+                this works like " ".join()
+                except this keeps multiple spaces
+                for stuff like ascii art
+                '''
+                if len(words) > 3:
+                    words[3] = words[3][1:] # remove leading colon
+                for w in words[3:]:
+                    if w == '':
+                        message += " "
+                    else:
+                        if (w.startswith("http://") or \
+                        w.startswith("https://")) and \
+                        len(w.split('.')) > 1:
+                            if not "192.168." in w:
+                                w = w[:-1]  # remove EOL
+                                try:
+                                    req = requests.get(w)
+                                    tree = fromstring(req.content)
+                                    title = tree.findtext('.//title')
+                                    # post_to_chan = " ".join((title, w))
+                                    post_to_chan = " ".join(("Page title:", title))
+                                    post_to_chan = post_to_chan.replace("\n", " ")
+                                    # print(post_to_chan)
+                                except:
+                                    post_to_chan = " ".join((nick+":", "Sorry, couldn't fetch page title."))
+                                what_the_bot_said = post_to_chan
+                                post_to_chan = "PRIVMSG " + channel + " :" + post_to_chan + self.EOL
+                                print(post_to_chan)
+                                self.s.send(post_to_chan.encode('utf-8'))
+                                #post_to_chan = ""
+                            else:
+                                pass
+                            if message == '':
+                                message = w
+                            else:
+                                message = " ".join((message, w))
+                # cut leading colon
+                # message = message[1:]
+                '''
+                logline will be written in the log file
+                '''
+                if indicator == 'PRIVMSG':
+                    logline = " ".join((nick + ':', message, self.EOL))
+                elif indicator == 'JOIN':
+                    logline = " ".join((nick, 'joined', channel, self.EOL))
+                elif indicator == 'PART':
+                    logline = " ".join((nick, 'left', channel, message, self.EOL))
+                elif indicator == 'TOPIC':
+                    logline = " ".join((nick, 'set the topic to:', message, self.EOL))
+                else:
+                    logline = line
+                if not what_the_bot_said == '':
+                    logline += self.EOL + self.NICKNAME+": " + what_the_bot_said + self.EOL
+                '''
+                don't log queries
+                '''
+                if not channel == self.NICKNAME:
+                    with  open('test', 'a') as f:
+                        f.write(logline + self.EOL)
+                        f.close()
+            else:
+                if indicator == '376':
+                    self.join()
+                elif indicator == '433':
+                    self.CONNECTED = False
+    
+    def join(self):
+        print ("[-J-] Joining " + self.CHANNEL)
+        join_msg = 'JOIN ' + self.CHANNEL + self.EOL
+        self.s.send(join_msg.encode('utf-8'))
+        
+    def handle_indicator(indicator, line):
+        if indicator not in self.LOG_THIS:
+            return -1
+        
+        
 
+# END OF class Connection
+        
+
+if __name__ == '__main__':
+    server = 'chat.freenode.net'
+    port = 6667
+    channel = '#ateltest'
+    realname = 'ateloph test'
+    nickname = 'ateloph_test'
+    ident = 'ateloph'
+    freenode = Connection(server, port, channel, realname, nickname, ident)
+    freenode.run()
