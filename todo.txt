@@ -2,8 +2,8 @@ Features to be included in rewrite
 ----------------------------------
 
 * Unicode, check for Latin-1, convert if necessary
-* Make PHP unnecessary for web-view of logs (make logs html?)
 * python.logging? (via andrej)
+* python.getopts (via andrej)
 
 ISSUES
 * bot can't properly handle more than 1 link per line
