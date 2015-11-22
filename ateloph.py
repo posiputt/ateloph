@@ -59,14 +59,16 @@ class Connection:
                     print ('[ERR] Something went wrong while connecting.'),
                     raise e
             stream = stub + self.listen(4096)
+            
             if stream == '':
                 continue
-            #print (stream)
+                
             lines = stream.split(self.EOL)
             if stream[-1] != self.EOL:
                 stub = lines.pop(-1)
             else:
                 stub = ''
+                
             for l in lines:
                 print ("[RAW] " + l)
                 self.parse(l)
@@ -145,38 +147,13 @@ class Connection:
                                 #post_to_chan = ""
                             else:
                                 pass
-                            if message == '':
-                                message = w
-                            else:
-                                message = " ".join((message, w))
-                # cut leading colon
-                # message = message[1:]
-                '''
-                logline will be written in the log file
-                '''
-                if indicator == 'PRIVMSG':
-                    logline = " ".join((nick + ':', message, self.EOL))
-                elif indicator == 'JOIN':
-                    logline = " ".join((nick, 'joined', channel, self.EOL))
-                elif indicator == 'PART':
-                    logline = " ".join((nick, 'left', channel, message, self.EOL))
-                elif indicator == 'TOPIC':
-                    logline = " ".join((nick, 'set the topic to:', message, self.EOL))
-                else:
-                    logline = line
-                if not what_the_bot_said == '':
-                    logline += self.EOL + self.NICKNAME+": " + what_the_bot_said + self.EOL
-                '''
-                don't log queries
-                '''
-                if not channel == self.NICKNAME:
-                    with  open('test', 'a') as f:
-                        f.write(logline + self.EOL)
-                        f.close()
+
             else:
+                # Finished receiving server messages.
                 if indicator == '376':
                     self.join()
                 elif indicator == '433':
+                    print("Warning: Nickname in use. REconnecting with other nick.")
                     self.CONNECTED = False
     
     def join(self):
