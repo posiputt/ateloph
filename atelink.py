@@ -70,7 +70,7 @@ class Connection:
                 stub = ''
                 
             for l in lines:
-                print ("[RAW] " + l)
+                print (("[RAW] " + l).encode('utf-8'))
                 self.parse(l)
                 
     def connect(self):
@@ -142,7 +142,7 @@ class Connection:
                                     post_to_chan = " ".join((nick+":", "Sorry, couldn't fetch page title."))
                                 what_the_bot_said = post_to_chan
                                 post_to_chan = "PRIVMSG " + channel + " :" + post_to_chan + self.EOL
-                                print(post_to_chan)
+                                print(post_to_chan.encode('utf-8'))
                                 self.s.send(post_to_chan.encode('utf-8'))
                                 #post_to_chan = ""
                             else:
