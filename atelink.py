@@ -174,8 +174,8 @@ if __name__ == '__main__':
     server = 'chat.freenode.net'
     port = 6667
     channel = '#ateltest'
-    realname = 'ateloph test'
-    nickname = 'ateloph_test'
-    ident = 'ateloph'
+    realname = 'atelink test'
+    nickname = 'atelink_test'
+    ident = 'atelink'
     freenode = Connection(server, port, channel, realname, nickname, ident)
     freenode.run()
