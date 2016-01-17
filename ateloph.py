@@ -24,10 +24,11 @@ SERVER = 'chat.freenode.net'
 PORT = 6667
 REALNAME = "ateloph"
 #NICK = ["ateloph_posi", "atel0ph_posi"]
-NICK = ['ateloph', 'ate1oph', 'atel0ph', 'ate10ph']
+# NICK = ['ateloph', 'ate1oph', 'atel0ph', 'ate10ph']
+NICK = ['ateltest']
 IDENT = "posiputt"
 #CHAN = "#atelophtest"
-CHAN = '#5'
+CHAN = '#ateltest'
 # ENTRY_MSG = 'Beep boop, wir testen den logbot. Wer ihn loswerden will, schreibe "' + BOT_QUIT + '".' 
 # INFO = "Das Log ist derzeit sowieso nicht oeffentlich, sondern auf posiputts Rechner. Wer neugierig auf die sources ist oder mitmachen will, siehe hier: https://github.com/posiputt/ateloph"
 ENTRY_MSG = 'entry.'
@@ -87,7 +88,7 @@ def parse(line):
         return: string logline
         '''
         #print "in log_privmsg"
-        messge = ''
+        message = ''
         message_startindex = 3
         separator = ':'
         words[3] = words[3][1:]         # remove the leading colon
@@ -171,7 +172,7 @@ def parse(line):
     }
 
     out = ''
-    #print line
+    print line
     words = line.split()
 
     timestamp = datetime.datetime.today().strftime("%H:%M:%S")
