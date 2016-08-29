@@ -164,6 +164,7 @@ def parse(line):
 
     functions = {
             'PRIVMSG':  log_privmsg,
+            'NOTICE':   log_privmsg,
             'JOIN':     log_join,
             'QUIT':     log_quit,
             'PART':     log_quit,
