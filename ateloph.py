@@ -6,6 +6,7 @@ import datetime
 import time
 import select
 import requests
+import codecs
 from lxml.html import fromstring
 
 class Connection:
@@ -170,7 +171,7 @@ class Connection:
                 don't log queries
                 '''
                 if not channel == self.NICKNAME:
-                    with  open('test', 'a') as f:
+                    with  codecs.open('test', 'a', 'utf-8') as f:
                         f.write(logline + self.EOL)
                         f.close()
             else:
