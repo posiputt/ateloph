@@ -24,7 +24,7 @@ class Connection:
         string  nickname    # the bot's nickname
         string  ident       # ident stuff whatever
     '''
-    def __init__(self, server, port, channel, realname, nickname, ident):
+    def __init__(self, server, port, channel, realname, nickname, ident, cert_dir):
         self.SERVER = server
         self.PORT = port
         self.CHANNEL = channel
@@ -33,6 +33,7 @@ class Connection:
         self.NICKNAME_FIXED = nickname
         self.NICKNAME = self.NICKNAME_FIXED + "[%i]" % self.reconnects
         self.IDENT = ident
+        self.CERTDIR = cert_dir
         self.EOL = '\n'
 
         self.LOG_THIS = ['PRIVMSG', 'JOIN', 'PART', 'KICK', 'TOPIC']
@@ -132,7 +133,7 @@ class Connection:
                             if not "192.168." in w:
                                 w = w[:-1]  # remove EOL
                                 try:
-                                    req = requests.get(w, verify = "/etc/ssl/certs/ca-certificates.crt")
+                                    req = requests.get(w, verify = self.CERTDIR)
                                     tree = fromstring(req.content)
                                     title = tree.findtext('.//title')
                                     # post_to_chan = " ".join((title, w))
@@ -209,6 +210,7 @@ if __name__ == '__main__':
             config['channel'],
             config['realname'],
             config['nickname'],
-            config['ident']
+            config['ident'],
+            config['cert_dir']
     )
     freenode.run()
