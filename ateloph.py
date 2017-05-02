@@ -138,7 +138,7 @@ class Connection:
                                     post_to_chan = post_to_chan.replace("\n", " ")
                                     # print(post_to_chan)
                                 except:
-                                    post_to_chan = " ".join((nick+":", "Sorry, couldn't fetch page title."))
+                                    post_to_chan = "Sorry, couldn't fetch page title."
                                 what_the_bot_said = post_to_chan
                                 post_to_chan = "PRIVMSG " + channel + " :" + post_to_chan + self.EOL
                                 print(post_to_chan)
