@@ -130,7 +130,7 @@ class Connection:
                             if not "192.168." in w:
                                 w = w[:-1]  # remove EOL
                                 try:
-                                    req = requests.get(w)
+                                    req = requests.get(w, verify = False)
                                     tree = fromstring(req.content)
                                     title = tree.findtext('.//title')
                                     # post_to_chan = " ".join((title, w))
