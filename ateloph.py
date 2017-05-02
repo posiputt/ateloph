@@ -8,6 +8,8 @@ import select
 import requests
 import codecs
 from lxml.html import fromstring
+import yaml
+import sys
 
 class Connection:
     '''
@@ -195,11 +197,18 @@ class Connection:
 
 
 if __name__ == '__main__':
-    server = 'chat.freenode.net'
-    port = 6667
-    channel = '#ateltest'
-    realname = 'ateloph test'
-    nickname = 'ateloph_test'
-    ident = 'ateloph'
-    freenode = Connection(server, port, channel, realname, nickname, ident)
+    try:
+        script, config_file = sys.argv
+        config = yaml.load(open(config_file))
+    except Exception as e:
+        raise (e)
+
+    freenode = Connection(
+            config['server'],
+            config['port'],
+            config['channel'],
+            config['realname'],
+            config['nickname'],
+            config['ident']
+    )
     freenode.run()
