@@ -32,13 +32,13 @@ class Connection:
         self.NICKNAME = self.NICKNAME_FIXED + "[%i]" % self.reconnects
         self.IDENT = ident
         self.EOL = '\n'
-        
+
         self.LOG_THIS = ['PRIVMSG', 'JOIN', 'PART', 'KICK', 'TOPIC']
-        
+
         self.LASTPING = time.time()     # timeout detection helper
         self.PINGTIMEOUT = 600          # ping timeout in seconds
         self.CONNECTED = False          # connection status, init False
-        
+
     def run(self):
         run = True
         stub = ''
@@ -71,7 +71,7 @@ class Connection:
             for l in lines:
                 print ("[RAW] " + l)
                 self.parse(l)
-                
+
     def connect(self):
         self.s = socket.socket()
         self.s.connect((self.SERVER, self.PORT))
@@ -80,7 +80,7 @@ class Connection:
         connection_msg.append('USER ' + self.IDENT + ' ' + self.SERVER + ' bla: ' + self.REALNAME + self.EOL)
         self.s.send(connection_msg[0].encode('utf-8'))
         self.s.send(connection_msg[1].encode('utf-8'))
-        
+
     def listen(self, chars):
         s_ready = select.select([self.s],[],[],10)
         if s_ready:
@@ -90,7 +90,7 @@ class Connection:
                 return self.s.recv(chars).decode('latin-1')
                 print ("-p-o-s-s-i-b-l-y---LATIN 1---------------------")
                 # raise e
-    
+
     def parse(self, line):
         if line == '':
             if time.time() - self.LASTPING > self.PINGTIMEOUT:
@@ -130,7 +130,7 @@ class Connection:
                             if not "192.168." in w:
                                 w = w[:-1]  # remove EOL
                                 try:
-                                    req = requests.get(w, verify = False)
+                                    req = requests.get(w, verify = "/etc/ssl/certs/ca-certificates.crt)"
                                     tree = fromstring(req.content)
                                     title = tree.findtext('.//title')
                                     # post_to_chan = " ".join((title, w))
@@ -179,20 +179,20 @@ class Connection:
                     self.join()
                 elif indicator == '433':
                     self.CONNECTED = False
-    
+
     def join(self):
         print ("[-J-] Joining " + self.CHANNEL)
         join_msg = 'JOIN ' + self.CHANNEL + self.EOL
         self.s.send(join_msg.encode('utf-8'))
-        
+
     def handle_indicator(indicator, line):
         if indicator not in self.LOG_THIS:
             return -1
-        
-        
+
+
 
 # END OF class Connection
-        
+
 
 if __name__ == '__main__':
     server = 'chat.freenode.net'
