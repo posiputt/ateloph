@@ -201,8 +201,15 @@ if __name__ == '__main__':
     try:
         script, config_file = sys.argv
         config = yaml.load(open(config_file))
-    except Exception as e:
-        raise (e)
+    except ValueError:
+        if len(sys.argv) < 2:
+            exit("Please provide a configuration file as argument")
+        elif len(sys.argv) > 2:
+            exit("Please give only one argument")
+        else:
+            exit("Unknown Error")
+    except FileNotFoundError:
+        exit("Config file not found")
 
     freenode = Connection(
             config['server'],
