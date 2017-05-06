@@ -9,7 +9,6 @@ import requests
 import codecs
 from lxml.html import fromstring
 import yaml
-import sys
 
 class Connection:
     '''
@@ -31,8 +30,8 @@ class Connection:
         self.CHANNEL = channel
         self.REALNAME = realname
         self.numberOfReconnects = 0
-        self.NICKNAME_FIXED = nickname
-        self.NICKNAME = self.NICKNAME_FIXED + "[%i]" % self.numberOfReconnects
+        self.NICKNAME_BASE = nickname
+        self.NICKNAME = self.NICKNAME_BASE + "[%i]" % self.numberOfReconnects
         self.IDENT = ident
         self.CERTDIR = cert_dir
         self.EOL = '\n'
@@ -44,41 +43,46 @@ class Connection:
         self.LASTPING = time.time()     # timeout detection helper
         self.PINGTIMEOUT = 600          # ping timeout in seconds
         self.CONNECTED = False          # connection status, init False
+        
+        self.buffer = ""
+    
+    def reconnect(self):
+        try:
+            if not self.numberOfReconnects == 0:
+                print("reconnecting attempt no. %i" % self.numberOfReconnects)
+                self.socket.close()
+                self.LASTPING = time.time()
+                time.sleep(10)
+            self.NICKNAME = self.NICKNAME_BASE + "[%i]" %self.numberOfReconnects
+            self.CONNECTED = True
+            self.connect()
+            self.numberOfReconnects += 1
+            print ("[CON] Connecting to " + self.SERVER)
+        except Exception as e:
+            self.CONNECTED = False
+            print ('[ERR] Something went wrong while connecting.'),
+            raise e # Das will ich mir nachher nochmal anschauen. Musst die geraised werden? koennen wir uu exiten?
+
+    def fillBuffer(self):
+        emptyLine = ""
+        stream = self.buffer + self.listen(4096)
+        if stream == emptyLine:
+            continue
+        lines = stream.split(self.EOL)
+        print(lines)
+        # As this result can be empty, we should use the[1-:] operator as
+        # described at https://stackoverflow.com/questions/930397/getting-the-last-element-of-a-list-in-python#930398
+        if lines[-1][-1:] != self.EOL: 
+            self.buffer = lines.pop(-1) 
+        else:
+            self.buffer = ""
+        return lines
 
     def run(self):
-        stub = ""
-        emptyLine = ""
         while True:
             if not self.CONNECTED:
-                #def reconnect()
-                try:
-                    if not self.numberOfReconnects == 0:
-                        print("reconnecting attempt no. %i" % self.numberOfReconnects)
-                        self.socket.close()
-                        self.LASTPING = time.time()
-                        time.sleep(10)
-                    self.NICKNAME = self.NICKNAME_FIXED + "[%i]" %self.numberOfReconnects
-                    self.CONNECTED = True
-                    self.connect()
-                    self.numberOfReconnects += 1
-                    print ("[CON] Connecting to " + self.SERVER)
-                except Exception as e:
-                    self.CONNECTED = False
-                    print ('[ERR] Something went wrong while connecting.'),
-                    raise e # Das will ich mir nachher nochmal anschauen. Musst die geraised werden? koennen wir uu exiten?
-            #def splitters() 
-            stream = stub + self.listen(4096)
-            if stream == emptyLine:
-                continue
-            lines = stream.split(self.EOL)
-            print(lines)
-            # As this result can be empty, we should use the[1-:] operator as
-            # described at https://stackoverflow.com/questions/930397/getting-the-last-element-of-a-list-in-python#930398
-            if lines[-1][-1:] != self.EOL: 
-                stub = lines.pop(-1) 
-            else:
-                stub = ""
-                
+                self.reconnect()
+            lines = fillBuffer() 
             for line in lines:
                 print ("[RAW] " + line)
                 self.parse(line)
@@ -97,9 +101,17 @@ class Connection:
         if socket_ready:
             try:
                 return self.socket.recv(chars).decode('utf-8')
+            # Can we specify this error?
             except:
                 print ("-p-o-s-s-i-b-l-y---LATIN 1---------------------")
                 return self.socket.recv(chars).decode('latin-1')
+
+    def sendPong(self):
+        print (time.time() - self.LASTPING)
+        self.LASTPING = time.time()
+        pong = 'PONG ' + words[1] + self.EOL
+        self.socket.send(pong.encode('utf-8'))
+        print ("[-P-] " + pong)
 
     def parse(self, line):
         if line == '':
@@ -109,17 +121,15 @@ class Connection:
             return
         words = line.split(' ')
         if words[0] == 'PING':
-            print (time.time() - self.LASTPING)
-            self.LASTPING = time.time()
-            pong = 'PONG ' + words[1] + self.EOL
-            self.socket.send(pong.encode('utf-8'))
-            print ("[-P-] " + pong)
+            self.sendPong()
         elif words[0][0] == ':':
+            # def parseMessage
             words[0] = words[0][1:] # remove leading colon
             sender = words[0].split('!')
             nick = sender[0]
             indicator = words[1]
             channel = words[2]
+            #def checkIndicator()
             if indicator in self.LOG_THIS:
                 what_the_bot_said = ''
                 message = ''
@@ -130,39 +140,34 @@ class Connection:
                 '''
                 if len(words) > 3:
                     words[3] = words[3][1:] # remove leading colon
-                for w in words[3:]:
-                    if w == '':
+                for word in words[3:]:
+                    if word == '':
                         message += " "
                     else:
-                        if (w.startswith("http://") or \
-                        w.startswith("https://")) and \
-                        len(w.split('.')) > 1:
-                            # Wahrscheinlich besser als liste
-                            if not "192.168." or "127.0.0" or "10.0.0" or "localhost" in w:
-                                w = w[:-1]  # remove EOL # Das kann expliziter gemacht werden. Das removed das letzte zeichen... nichts ganz was der kommentar sagt.
+                        if (word.startswith("http://") or \
+                        word.startswith("https://")) and \
+                        len(word.split('.')) > 1:
+                            if not "192.168." in word:
+                                # title = self sendTitle()
+                                word = word[:-1]  # remove EOL
                                 try:
-                                    req = requests.get(w, verify = self.CERTDIR)
+                                    req = requests.get(word, verify = self.CERTDIR)
                                     tree = fromstring(req.content)
                                     title = tree.findtext('.//title')
-                                    post_to_chan = " ".join(("Page title:", title))
+                                    post_to_chan = " ".join(("Page title:", title. decode('utf-8')))
                                     post_to_chan = post_to_chan.replace("\n", " ")
+                                # Again, is it a specific error?
                                 except:
                                     post_to_chan = "Sorry, couldn't fetch page title."
                                 what_the_bot_said = post_to_chan
                                 post_to_chan = "PRIVMSG " + channel + " :" + post_to_chan + self.EOL
                                 print(post_to_chan)
                                 self.socket.send(post_to_chan.encode('utf-8'))
-                            else:
-                                pass
+
                             if message == '':
-                                message = w
+                                message = word
                             else:
-                                message = " ".join((message, w)) #Wat? (())? 
-                    #Macht das noch Sinn? Was ist der Kommentar?
-                    # Ist es nur auskommentiert?
-                    # Ist das Kunst? ^^
-                ## cut leading colon
-                ## message = message[1:]
+                                message = " ".join((message, word)) #Wat? (())? 
                 '''
                 logline will be written in the log file
                 '''
@@ -185,16 +190,20 @@ class Connection:
                 '''
                 if not channel == self.NICKNAME:
                     with  codecs.open(self.LOGFILE, 'a', 'utf-8') as f:
+                        print(logline)
                         f.write(logline + self.EOL)
                         f.close()
             else:
-                # Magic numbers! Was ist 376?
-                if indicator == '376':
-                    self.join()
-                    # Was ist 433?
-                elif indicator == '433':
-                    self.CONNECTED = False
+                self.checkServerJoinMessages(indicator)
 
+    def checkServerJoinMessages(self, indicator):
+        # http://www.networksorcery.com/enp/protocol/irc.htm
+        EndOfMOTD = 376
+        NickInUse = 433
+        if indicator == EndOfMOTD:
+            self.join()
+        elif indicator == NickInUse:
+            self.CONNECTED = False
 
     def join(self):
         print ("[-J-] Joining " + self.CHANNEL)
