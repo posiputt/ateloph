@@ -43,9 +43,9 @@ class Connection:
         self.LASTPING = time.time()     # timeout detection helper
         self.PINGTIMEOUT = 600          # ping timeout in seconds
         self.CONNECTED = False          # connection status, init False
-        
+
         self.buffer = ""
-    
+
     def reconnect(self):
         try:
             if not self.numberOfReconnects == 0:
@@ -67,7 +67,7 @@ class Connection:
         emptyLine = ""
         stream = self.buffer + self.listen(4096)
         if stream == emptyLine:
-            continue
+            return
         lines = stream.split(self.EOL)
         print(lines)
         # As this result can be empty, we should use the[1-:] operator as
@@ -82,7 +82,9 @@ class Connection:
         while True:
             if not self.CONNECTED:
                 self.reconnect()
-            lines = fillBuffer() 
+            lines = self.fillBuffer() 
+            if lines == None:
+                continue
             for line in lines:
                 print ("[RAW] " + line)
                 self.parse(line)
@@ -106,7 +108,7 @@ class Connection:
                 print ("-p-o-s-s-i-b-l-y---LATIN 1---------------------")
                 return self.socket.recv(chars).decode('latin-1')
 
-    def sendPong(self):
+    def sendPong(self, words):
         print (time.time() - self.LASTPING)
         self.LASTPING = time.time()
         pong = 'PONG ' + words[1] + self.EOL
@@ -121,7 +123,7 @@ class Connection:
             return
         words = line.split(' ')
         if words[0] == 'PING':
-            self.sendPong()
+            self.sendPong(words)
         elif words[0][0] == ':':
             # def parseMessage
             words[0] = words[0][1:] # remove leading colon
@@ -141,6 +143,7 @@ class Connection:
                 if len(words) > 3:
                     words[3] = words[3][1:] # remove leading colon
                 for word in words[3:]:
+                    # Dealing with leading spaces in the raw line by expanding them again.
                     if word == '':
                         message += " "
                     else:
@@ -154,9 +157,12 @@ class Connection:
                                     req = requests.get(word, verify = self.CERTDIR)
                                     tree = fromstring(req.content)
                                     title = tree.findtext('.//title')
-                                    post_to_chan = " ".join(("Page title:", title. decode('utf-8')))
+                                    post_to_chan = " ".join(("Page title:", title))
                                     post_to_chan = post_to_chan.replace("\n", " ")
                                 # Again, is it a specific error?
+                                except requests.exceptions.SSLError:
+                                    print("SSL Error! Please check that the location of the certs in the config file is correct.")
+                                    post_to_chan = "Sorry, couldn't fetch page title. Please check that the location of the certs in the config file is correct."
                                 except:
                                     post_to_chan = "Sorry, couldn't fetch page title."
                                 what_the_bot_said = post_to_chan
@@ -198,8 +204,8 @@ class Connection:
 
     def checkServerJoinMessages(self, indicator):
         # http://www.networksorcery.com/enp/protocol/irc.htm
-        EndOfMOTD = 376
-        NickInUse = 433
+        EndOfMOTD = "376"
+        NickInUse = "433"
         if indicator == EndOfMOTD:
             self.join()
         elif indicator == NickInUse:
