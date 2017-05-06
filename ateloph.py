@@ -29,7 +29,7 @@ class Connection:
         self.PORT = port
         self.CHANNEL = channel
         self.REALNAME = realname
-        self.numberOfReconnects = 1
+        self.numberOfReconnects = 0
         self.NICKNAME_BASE = nickname
         self.NICKNAME = self.NICKNAME_BASE + "[%i]" % self.numberOfReconnects
         self.IDENT = ident
@@ -48,7 +48,7 @@ class Connection:
 
     def reconnect(self):
         try:
-            if not self.numberOfReconnects == 1:
+            if not self.numberOfReconnects == 0:
                 print("reconnecting attempt no. %i" % self.numberOfReconnects)
                 self.socket.close()
                 self.LASTPING = time.time()
@@ -154,7 +154,6 @@ class Connection:
                                 # title = self sendTitle()
                                 word = word[:-1]  # remove EOL
                                 try:
-                                    print("!!!!!! URL CHECK: ", word)
                                     req = requests.get(word, verify = self.CERTDIR)
                                     tree = fromstring(req.content)
                                     title = tree.findtext('.//title')
