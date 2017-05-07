@@ -5,10 +5,10 @@ import socket
 import datetime
 import time
 import select
-import requests
 import codecs
-from lxml.html import fromstring
+import requests
 import yaml
+from lxml.html import fromstring
 
 class Connection:
     '''
@@ -44,11 +44,14 @@ class Connection:
         self.PINGTIMEOUT = 600          # ping timeout in seconds
         self.CONNECTED = False          # connection status, init False
 
+
         self.buffer = ""
+        self.now = datetime.datetime.now().strftime("%H:%M:%S")
+        self.today = datetime.datetime.now().strftime("_%Y-%m-%d")
 
     def reconnect(self):
         try:
-            if not self.numberOfReconnects == 0:
+            if self.numberOfReconnects != 0:
                 print("reconnecting attempt no. %i" % self.numberOfReconnects)
                 self.socket.close()
                 self.LASTPING = time.time()
@@ -60,20 +63,20 @@ class Connection:
             print ("[CON] Connecting to " + self.SERVER)
         except Exception as e:
             self.CONNECTED = False
-            print ('[ERR] Something went wrong while connecting.'),
+            print('[ERR] Something went wrong while connecting.'),
             raise e # Das will ich mir nachher nochmal anschauen. Musst die geraised werden? koennen wir uu exiten?
 
-    def fillBuffer(self):
-        emptyLine = ""
+    def fill_buffer(self):
+        empty_line = ""
         stream = self.buffer + self.listen(4096)
-        if stream == emptyLine:
+        if stream == empty_line:
             return
         lines = stream.split(self.EOL)
         print(lines)
         # As this result can be empty, we should use the[1-:] operator as
         # described at https://stackoverflow.com/questions/930397/getting-the-last-element-of-a-list-in-python#930398
-        if lines[-1][-1:] != self.EOL: 
-            self.buffer = lines.pop(-1) 
+        if lines[-1][-1:] != self.EOL:
+            self.buffer = lines.pop(-1)
         else:
             self.buffer = ""
         return lines
@@ -82,8 +85,8 @@ class Connection:
         while True:
             if not self.CONNECTED:
                 self.reconnect()
-            lines = self.fillBuffer() 
-            if lines == None:
+            lines = self.fill_buffer()
+            if lines is None:
                 continue
             for line in lines:
                 print ("[RAW] " + line)
@@ -154,7 +157,7 @@ class Connection:
                                 # title = self sendTitle()
                                 word = word[:-1]  # remove EOL
                                 try:
-                                    req = requests.get(word, verify = self.CERTDIR)
+                                    req = requests.get(word, verify=self.CERTDIR)
                                     tree = fromstring(req.content)
                                     title = tree.findtext('.//title')
                                     post_to_chan = " ".join(("Page title:", title))
@@ -170,39 +173,38 @@ class Connection:
                                 print(post_to_chan)
                                 self.socket.send(post_to_chan.encode('utf-8'))
 
-                            if message == '':
-                                message = word
-                            else:
-                                message = " ".join((message, word)) #Wat? (())? 
+                        if message == '':
+                            message = word
+                        else:
+                            message = " ".join((message, word)) #Wat? (())?
                 '''
                 logline will be written in the log file
                 '''
                 # Eventuell besser mit einem dictionary?
                 # https://stackoverflow.com/questions/60208/replacements-for-switch-statement-in-python
                 if indicator == 'PRIVMSG':
-                    logline = " ".join((nick + ':', message, self.EOL))
+                    logline = " ".join((self.now, nick + ':', message, self.EOL))
                 elif indicator == 'JOIN':
-                    logline = " ".join((nick, 'joined', channel, self.EOL))
+                    logline = " ".join((self.now, nick, 'joined', channel, self.EOL))
                 elif indicator == 'PART':
-                    logline = " ".join((nick, 'left', channel, message, self.EOL))
+                    logline = " ".join((self.now, nick, 'left', channel, message, self.EOL))
                 elif indicator == 'TOPIC':
-                    logline = " ".join((nick, 'set the topic to:', message, self.EOL))
+                    logline = " ".join((self.now, nick, 'set the topic to:', message, self.EOL))
                 else:
-                    logline = line
+                    logline = (self.now + " " + line)
                 if not what_the_bot_said == '':
                     logline += self.EOL + self.NICKNAME+": " + what_the_bot_said + self.EOL
                 '''
                 don't log queries
                 '''
                 if not channel == self.NICKNAME:
-                    with  codecs.open(self.LOGFILE, 'a', 'utf-8') as f:
-                        print(logline)
-                        f.write(logline + self.EOL)
-                        f.close()
+                    with  codecs.open(self.LOGFILE + self.today + ".log", 'a', 'utf-8') as fName:
+                        fName.write(logline + self.EOL)
+                        fName.close()
             else:
-                self.checkServerJoinMessages(indicator)
+                self.check_server_join_messages(indicator)
 
-    def checkServerJoinMessages(self, indicator):
+    def check_server_join_messages(self, indicator):
         # http://www.networksorcery.com/enp/protocol/irc.htm
         EndOfMOTD = "376"
         NickInUse = "433"
@@ -232,7 +234,7 @@ if __name__ == '__main__':
             exit("Unknown Error")
     except FileNotFoundError:
         exit("Config file not found")
-    
+
     try:
         freenode = Connection(
             config['server'],
@@ -245,8 +247,11 @@ if __name__ == '__main__':
             config['log_file']
         )
     except KeyError as entry: # ohne 'as'? # keine ahnung, ich benutze exceptions so selten :D ich schreibe tatsaechlich auch gerade nur selten python.
-        exit("Error: Missing entry for {} in config file.".format(entry))
-        
+        if entry == "log_file":
+            Connection.logfile = config["channel"]
+        else:
+            exit("Error: Missing entry for {} in config file.".format(entry))
+
     if freenode != None:
         freenode.run()
     else:
