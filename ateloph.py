@@ -35,7 +35,7 @@ class Connection:
         self.IDENT = ident
         self.CERTDIR = cert_dir
         self.EOL = '\n'
-        
+
         self.LOGFILE = logfile
 
         self.LOG_THIS = ['PRIVMSG', 'JOIN', 'PART', 'KICK', 'TOPIC']
@@ -88,9 +88,10 @@ class Connection:
             lines = self.fill_buffer()
             if lines is None:
                 continue
-            for line in lines:
-                print ("[RAW] " + line)
-                self.parse(line)
+            else:
+                for line in lines:
+                    print ("[RAW] " + line)
+                    self.parse(line)
 
     def connect(self):
         self.socket = socket.socket()
