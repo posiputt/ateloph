@@ -202,6 +202,9 @@ class Connection:
                     with  codecs.open(self.LOGFILE + self.today + ".log", 'a', 'utf-8') as fName:
                         fName.write(logline + self.EOL)
                         fName.close()
+                        self.today = datetime.datetime.now().strftime("_%Y-%m-%d")
+                        self.now = datetime.datetime.now().strftime("%H:%M:%S")
+
             else:
                 self.check_server_join_messages(indicator)
 
