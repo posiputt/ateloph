@@ -199,7 +199,7 @@ class Connection:
                 don't log IRC queries / private messages to the bot
                 '''
                 if not channel == self.NICKNAME:
-                    with  codecs.open(self.LOGFILE + self.today + ".log", 'a', 'utf-8') as fName:
+                    with  codecs.open("web/" + self.LOGFILE + self.today + ".log", 'a', 'utf-8') as fName:
                         fName.write(logline + self.EOL)
                         fName.close()
                         self.today = datetime.datetime.now().strftime("_%Y-%m-%d")
