@@ -4,6 +4,8 @@ Features to be included in rewrite
 * Unicode, check for Latin-1, convert if necessary
 * Make PHP unnecessary for web-view of logs (make logs html?)
 * python.logging? (via andrej)
+* Not all requests error should be shown in channel
+* Error messages should be more specific
 
 ISSUES
 * bot can't properly handle more than 1 link per line
