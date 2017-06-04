@@ -184,24 +184,23 @@ class Connection:
                 # Eventuell besser mit einem dictionary?
                 # https://stackoverflow.com/questions/60208/replacements-for-switch-statement-in-python
                 if indicator == 'PRIVMSG':
-                    logline = " ".join((self.now, nick + ':', message, self.EOL))
+                    logline = " ".join((self.now, nick + ':', message))
                 elif indicator == 'JOIN':
-                    logline = " ".join((self.now, nick, 'joined', channel, self.EOL))
+                    logline = " ".join((self.now, nick, 'joined', channel))
                 elif indicator == 'PART':
-                    logline = " ".join((self.now, nick, 'left', channel, message, self.EOL))
+                    logline = " ".join((self.now, nick, 'left', channel, message))
                 elif indicator == 'TOPIC':
-                    logline = " ".join((self.now, nick, 'set the topic to:', message, self.EOL))
+                    logline = " ".join((self.now, nick, 'set the topic to:', message))
                 else:
                     logline = (self.now + " " + line)
                 if not what_the_bot_said == '':
-                    logline += self.EOL + self.NICKNAME+": " + what_the_bot_said + self.EOL
+                    logline += self.EOL + self.NICKNAME+": " + what_the_bot_said 
                 '''
                 don't log IRC queries / private messages to the bot
                 '''
                 if not channel == self.NICKNAME:
                     with  codecs.open("web/" + self.LOGFILE + self.today + ".log", 'a', 'utf-8') as fName:
                         fName.write(logline + self.EOL)
-                        fName.close()
                         self.today = datetime.datetime.now().strftime("_%Y-%m-%d")
                         self.now = datetime.datetime.now().strftime("%H:%M:%S")
 
