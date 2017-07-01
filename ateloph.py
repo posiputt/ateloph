@@ -161,12 +161,22 @@ class Connection:
                                     req = requests.get(word, verify=self.CERTDIR)
                                     tree = fromstring(req.content)
                                     title = tree.findtext('.//title')
-                                    post_to_chan = " ".join(("Page title:", title))
-                                    post_to_chan = post_to_chan.replace("\n", " ")
+                                    if title:
+					post_to_chan = " ".join(("Page title:", title))
+                                    	post_to_chan = post_to_chan.replace("\n", " ")
+				    else:
+					post_to_chan = ""
                                 # Again, is it a specific error?
-                                except requests.exceptions.SSLError:
-                                    print("SSL Error! Please check that the location of the certs in the config file is correct.")
-                                    post_to_chan = "Sorry, couldn't fetch page title. Please check that the location of the certs in the config file is correct."
+                                except requests.exceptions.SSLError as e:
+                                    req = requests.get(word, verify=False)
+                                    tree = fromstring(req.content)
+                                    title = tree.findtext('.//title')
+                                    if title: 
+				    	post_to_chan = " ".join(("UNVERIFIED! Page title:", title))
+                                    	post_to_chan = post_to_chan.replace("\n", " ")
+                                    	print("SSL Error! Please check that the location of the certs in the config file is correct: " + str(e))
+				    else:
+					post_to_chan = ""
                                 except:
                                     post_to_chan = "Sorry, couldn't fetch page title."
                                 what_the_bot_said = post_to_chan
