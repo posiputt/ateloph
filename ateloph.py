@@ -200,13 +200,14 @@ class Connection:
         self.socket.send(join_msg.encode('utf-8'))
         
     def expand_link(self, word, channel):
-        print ("potenzieller link: <begin>" + word + "<end>")
+        #print ("potenzieller link vor rstrip: <begin>" + word + "<end>".rstrip())
+        word.rstrip()  # remove EOL
+        #print ("potenzieller link nach rstrip: <begin>" + word + "<end>")
         if (word.startswith("http://") or \
             word.startswith("https://")) and \
             len(word.split('.')) > 1:
             if not "192.168." in word:
                 # title = self sendTitle()
-                word = word[:-1]  # remove EOL
                 try:
                     req = requests.get(word, verify=self.CERTDIR)
                     tree = fromstring(req.content)
@@ -215,7 +216,7 @@ class Connection:
                     post_to_chan = post_to_chan.replace("\n", " ")
                 # Again, is it a specific error?
                 except requests.exceptions.SSLError:
-		    post_to_chan = " ".join(("UNVERIFIED! Page title:", title))
+                    post_to_chan = " ".join(("UNVERIFIED! Page title:", title))
                     post_to_chan = post_to_chan.replace("\n", " ")
                     print("SSL Error! Please check that the location of the certs in the config file is correct.")
                 except:
