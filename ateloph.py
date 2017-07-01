@@ -151,29 +151,7 @@ class Connection:
                     if word == '':
                         message += " "
                     else:
-                        if (word.startswith("http://") or \
-                        word.startswith("https://")) and \
-                        len(word.split('.')) > 1:
-                            if not "192.168." in word:
-                                # title = self sendTitle()
-                                word = word[:-1]  # remove EOL
-                                try:
-                                    req = requests.get(word, verify=self.CERTDIR)
-                                    tree = fromstring(req.content)
-                                    title = tree.findtext('.//title')
-                                    post_to_chan = " ".join(("Page title:", title))
-                                    post_to_chan = post_to_chan.replace("\n", " ")
-                                # Again, is it a specific error?
-                                except requests.exceptions.SSLError:
-                                    print("SSL Error! Please check that the location of the certs in the config file is correct.")
-                                    post_to_chan = "Sorry, couldn't fetch page title. Please check that the location of the certs in the config file is correct."
-                                except:
-                                    post_to_chan = "Sorry, couldn't fetch page title."
-                                what_the_bot_said = post_to_chan
-                                post_to_chan = "PRIVMSG " + channel + " :" + post_to_chan + self.EOL
-                                print(post_to_chan)
-                                self.socket.send(post_to_chan.encode('utf-8'))
-
+                        self.expand_link(word, channel)
                         if message == '':
                             message = word
                         else:
@@ -220,6 +198,33 @@ class Connection:
         print ("[-J-] Joining " + self.CHANNEL)
         join_msg = 'JOIN ' + self.CHANNEL + self.EOL
         self.socket.send(join_msg.encode('utf-8'))
+        
+    def expand_link(self, word, channel):
+        print ("potenzieller link: " + word)
+        if (word.startswith("http://") or \
+            word.startswith("https://")) and \
+            len(word.split('.')) > 1:
+            if not "192.168." in word:
+                # title = self sendTitle()
+                word = word[:-1]  # remove EOL
+                try:
+                    req = requests.get(word, verify=self.CERTDIR)
+                    tree = fromstring(req.content)
+                    title = tree.findtext('.//title')
+                    post_to_chan = " ".join(("Page title:", title))
+                    post_to_chan = post_to_chan.replace("\n", " ")
+                # Again, is it a specific error?
+                except requests.exceptions.SSLError:
+                    print("SSL Error! Please check that the location of the certs in the config file is correct.")
+                    post_to_chan = "Sorry, couldn't fetch page title. Please check that the location of the certs in the config file is correct."
+                except:
+                    post_to_chan = "Sorry, couldn't fetch page title."
+                what_the_bot_said = post_to_chan
+                post_to_chan = "PRIVMSG " + channel + " :" + post_to_chan + self.EOL
+                print(post_to_chan)
+                self.socket.send(post_to_chan.encode('utf-8'))
+        else:
+            pass
 
 # END OF class Connection
 
