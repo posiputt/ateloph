@@ -200,7 +200,7 @@ class Connection:
         self.socket.send(join_msg.encode('utf-8'))
         
     def expand_link(self, word, channel):
-        print ("potenzieller link: " + word)
+        print ("potenzieller link: <begin>" + word + "<end>")
         if (word.startswith("http://") or \
             word.startswith("https://")) and \
             len(word.split('.')) > 1:
