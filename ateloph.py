@@ -219,8 +219,8 @@ class Connection:
                     post_to_chan = " ".join(("UNVERIFIED! Page title:", title))
                     post_to_chan = post_to_chan.replace("\n", " ")
                     print("SSL Error! Please check that the location of the certs in the config file is correct.")
-                except:
-                    post_to_chan = "Sorry, couldn't fetch page title."
+                except Exception as e:
+                    post_to_chan = "Sorry, couldn't fetch page title. Exception of type: %s" % (type(e))
                 what_the_bot_said = post_to_chan
                 post_to_chan = "PRIVMSG " + channel + " :" + post_to_chan + self.EOL
                 print(post_to_chan)
