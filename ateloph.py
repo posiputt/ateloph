@@ -172,7 +172,7 @@ class Connection:
                 else:
                     logline = (self.now + " " + line)
                 if not what_the_bot_said == '':
-                    logline += self.EOL + self.NICKNAME+": " + what_the_bot_said 
+                    logline += self.EOL + self.NICKNAME+": " + what_the_bot_said
                 '''
                 don't log IRC queries / private messages to the bot
                 '''
@@ -198,7 +198,7 @@ class Connection:
         print ("[-J-] Joining " + self.CHANNEL)
         join_msg = 'JOIN ' + self.CHANNEL + self.EOL
         self.socket.send(join_msg.encode('utf-8'))
-        
+
     def expand_link(self, word, channel):
         #print ("potenzieller link vor rstrip: <begin>" + word + "<end>".rstrip())
         word.rstrip()  # remove EOL
@@ -206,6 +206,7 @@ class Connection:
         if (word.startswith("http://") or \
             word.startswith("https://")) and \
             len(word.split('.')) > 1:
+            title = ""
             if not "192.168." in word:
                 # title = self sendTitle()
                 try:
