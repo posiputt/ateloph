@@ -201,7 +201,7 @@ class Connection:
 
     def expand_link(self, word, channel):
         #print ("potenzieller link vor rstrip: <begin>" + word + "<end>".rstrip())
-        word.rstrip()  # remove EOL
+        word = word.rstrip()  # remove EOL
         #print ("potenzieller link nach rstrip: <begin>" + word + "<end>")
         if (word.startswith("http://") or \
             word.startswith("https://")) and \
