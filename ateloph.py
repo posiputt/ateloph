@@ -213,8 +213,10 @@ class Connection:
                     req = requests.get(word, verify=self.CERTDIR)
                     tree = fromstring(req.content)
                     title = tree.findtext('.//title')
+                    # Strip surrounding whitespace and replace each inner
+                    # whitespace sequence by a single space
+                    title = ' '.join(title.split())
                     post_to_chan = "Page title: " + title
-                    post_to_chan = post_to_chan.replace("\n", " ")
                 # Again, is it a specific error?
                 except requests.exceptions.SSLError:
                     post_to_chan = " ".join(("UNVERIFIED! Page title:", title))
