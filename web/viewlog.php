@@ -12,9 +12,9 @@
 	);
 	$lines = file($_GET['l']);
 	foreach ($lines as $outerkey=>$l) {
-		$words = split('[ ]', $l);
+		$words = preg_split('[ ]', $l);
 		$nick = $words[1];
-		$nick = split('[:]',$nick)[0];
+		$nick = preg_split('[:]',$nick)[0];
 		foreach ($words as $key=>$w) {
 			if ((stripos($w, 'http') === 0) || (stripos($w, 'ftp') === 0)) {
 				if ((stripos($w, '://') > 2) && (stripos($w, '://') < 6)) {
